@@ -161,7 +161,11 @@
   /* 本日のスケジュール */
   .cal { position: relative; padding: 8px 10px 12px 10px; overflow: auto; flex: 1; min-height: 0; }
   .cal .allday { margin: 0 0 8px 44px; display: flex; flex-direction: column; gap: 4px; }
-  .cal .tl { position: relative; }
+  .cal .tl { position: relative; cursor: copy; } /* 空いた時間を押すと予定を追加 */
+  .cal .ev, .cal .ad { cursor: pointer; }
+  .cal .ev.ro { opacity: .85; } .cal .ev.ro b::after { content: ' ↗'; font-weight: 400; }
+  .cal .ad.ro::after { content: ' ↗'; }
+  .cal .hint-add { font-size: 11px; color: var(--faint); text-align: center; padding: 4px 0 2px; }
   .cal .hr { height: 44px; border-top: 1px solid var(--line-2); position: relative; font-family: var(--mono); font-size: 11px; color: var(--faint); }
   .cal .hr span { position: absolute; top: -8px; left: 0; background: #fff; padding-right: 4px; }
   .cal .ev { position: absolute; left: 44px; right: 4px; border-radius: 6px; padding: 4px 8px; font-size: 12px; line-height: 1.35; overflow: hidden; color: #fff; background: #0ea5e9; border-left: 3px solid rgba(0,0,0,.25); box-shadow: 0 1px 2px rgba(0,0,0,.15); text-decoration: none; }
@@ -264,7 +268,7 @@
           </div>
         </div>
         <div class="card" id="calCard">
-          <div class="card-h"><h2 id="calTitle">本日のスケジュール</h2><span class="sp"></span><span class="calnav"><button class="btn sm" id="calPrev">‹</button><button class="btn sm" id="calToday">今日</button><button class="btn sm" id="calNext">›</button></span><a class="btn sm" id="calOpen" href="https://calendar.google.com/" target="_blank" rel="noopener" style="text-decoration:none">カレンダーを開く ↗</a></div>
+          <div class="card-h"><h2 id="calTitle">本日のスケジュール</h2><span class="sp"></span><span class="calnav"><button class="btn sm" id="calPrev">‹</button><button class="btn sm" id="calToday">今日</button><button class="btn sm" id="calNext">›</button></span><button class="btn sm primary" id="calAdd" title="予定を追加">＋予定</button><a class="btn sm" id="calOpen" href="https://calendar.google.com/" target="_blank" rel="noopener" style="text-decoration:none">カレンダーを開く ↗</a></div>
           <div class="cal" id="cal"><div class="empty">読み込み中…</div></div>
         </div>
         <div class="card" id="mailCard">
@@ -455,12 +459,22 @@
           return { getId: function () { return m.id; }, getFirstMessageSubject: function () { return m.subject; }, getMessages: function () { return [msg]; }, getLastMessageDate: function () { return m.date; } }; });
       },
       getInboxUnreadCount: function () { return (env.inbox[env.user] || []).filter(function (m) { return m.unread; }).length; } },
-      CalendarApp: { getDefaultCalendar: function () { return { getEventsForDay: function (d) {
-        var dayStart = new Date(d.getTime()), dayEnd = new Date(d.getTime() + 86400000);
-        return (env.calendar[env.user] || []).filter(function (e) { return e.start < dayEnd && e.end > dayStart; }).sort(function (a, b) { return a.start - b.start; }).map(function (e) { return {
+      // カレンダー（人ごと）: env.calendar[user] = [{id, title, start(Date), end(Date), allDay, location, description, notMine(招待された予定), recurring}]
+      CalendarApp: { getDefaultCalendar: function () {
+        function list() { return env.calendar[env.user] || (env.calendar[env.user] = []); }
+        function wrap(e) { return {
           getId: function () { return e.id; }, getTitle: function () { return e.title; }, isAllDayEvent: function () { return !!e.allDay; },
-          getStartTime: function () { return e.start; }, getEndTime: function () { return e.end; }, getLocation: function () { return e.location || ""; } }; });
-      } }; } },
+          getStartTime: function () { return e.start; }, getEndTime: function () { return e.end; }, getLocation: function () { return e.location || ''; }, getDescription: function () { return e.description || ''; },
+          isOwnedByMe: function () { return !e.notMine; }, isRecurringEvent: function () { return !!e.recurring; },
+          setTitle: function (t) { e.title = t; return this; }, setLocation: function (l) { e.location = l; return this; }, setDescription: function (d) { e.description = d; return this; },
+          setTime: function (s, en) { e.start = s; e.end = en; e.allDay = false; return this; }, setAllDayDate: function (d) { e.start = d; e.end = new Date(d.getTime() + 86400000); e.allDay = true; return this; },
+          deleteEvent: function () { var l = list(), i = l.indexOf(e); if (i >= 0) l.splice(i, 1); } }; }
+        return {
+          getEventsForDay: function (d) { var dayStart = new Date(d.getTime()), dayEnd = new Date(d.getTime() + 86400000); return list().filter(function (e) { return e.start < dayEnd && e.end > dayStart; }).sort(function (a, b) { return a.start - b.start; }).map(wrap); },
+          getEventById: function (id) { var e = list().filter(function (x) { return x.id === id; })[0]; return e ? wrap(e) : null; },
+          createEvent: function (t, s, en, o) { var e = { id: 'ev' + Date.now().toString(36) + Math.floor(Math.random() * 1e6), title: t, start: s, end: en, location: (o || {}).location || '', description: (o || {}).description || '' }; list().push(e); return wrap(e); },
+          createAllDayEvent: function (t, d, o) { var e = { id: 'ev' + Date.now().toString(36) + Math.floor(Math.random() * 1e6), title: t, start: d, end: new Date(d.getTime() + 86400000), allDay: true, location: (o || {}).location || '', description: (o || {}).description || '' }; list().push(e); return wrap(e); }
+        }; } },
       MailApp: { sendEmail: function (to, subject, body) { env.notices = env.notices || []; env.notices.push({ from: env.user, to: to, subject: subject, body: body }); }, getRemainingDailyQuota: function () { return 1500 - env.mails.filter(function (m) { return m.from === env.user; }).length; } },
       ContentService: {
         MimeType: { JSON: 'json', JAVASCRIPT: 'js' },
@@ -526,8 +540,9 @@ window.HtmlService = {};
 // データはスプレッドシート（tasks / assignments / comments / members / links / admins / settings）
 
 var TZ = 'Asia/Tokyo';
-var SHEET_ID = ''; // 本番の親スプレッドシートID（setup() で作ると Script Properties に入る）
+var SHEET_ID = ''; // タスク管理データ（このスクリプトの親スプレッドシート・2026-10-31 作成）。Script Properties の SHEET_ID が優先
 var ADMIN_EMAIL = 'hirayama@k-create.co.jp'; // 最初の管理者（admins シートに1人もいないときに入れる）
+var STAFF_SHEET_ID = '1bA0xaY9fIwu1PVTzmvbV5_pZ4zmeC2bfMW0ClEBOpQM'; // 社内スタッフ名簿（サイト共通）★システム（消さないで）内。A=メール B=名前（姓 名）・1行目は見出し
 var CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
 var TASK_HEAD = ['id', 'title', 'body', 'due', 'due_time', 'minutes', 'link', 'creator', 'created', 'scope', 'status', 'done_at', 'updated', 'kind', 'important'];
 // kind: self（個人）/ team（チーム＝選んだ相手）/ all（全社＝名前登録済みの全員）。important=1 は重要（色はピンクが優先）
@@ -559,6 +574,7 @@ var DEFAULT_SETTINGS = [
 var DATE_COLS = { tasks: [4, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.setup === 'staff') return HtmlService.createHtmlOutput('<pre style="font-size:14px;line-height:1.7">' + syncStaff_().join('\n') + '</pre>').setTitle('名簿から登録');
   return HtmlService.createTemplateFromFile('index').evaluate()
     .setTitle('タスク管理')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -590,6 +606,8 @@ function setup() {
   var def = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
   if (def && ss.getSheets().length > 1) ss.deleteSheet(def);
   props.setProperty('SHEET_ID', ss.getId());
+  memo_ = {};
+  if (!rows_('members').length) { try { syncStaff_(true); } catch (err) { Logger.log('名簿の読み込みに失敗: ' + err); } } // 初回は名簿から全員を登録
   memo_ = {};
   Logger.log('SHEET_ID = ' + ss.getId());
   Logger.log(ss.getUrl());
@@ -705,6 +723,24 @@ function saveProfile_(email, p) {
   if (row) sh.getRange(row, 1, 1, vals.length).setValues([vals]); else sh.appendRow(vals);
   bust_('members');
   return member_(email);
+}
+
+// 社内スタッフ名簿 → members（名前を更新・いない人は追加。名簿にいない人はそのまま）。管理者が ?setup=staff を開く
+function syncStaff_(fromSetup) {
+  if (!fromSetup && !isAdmin_(myEmail_())) return ['管理者だけが実行できます'];
+  var src = SpreadsheetApp.openById(STAFF_SHEET_ID).getSheets()[0];
+  var n = src.getLastRow();
+  var list = n < 2 ? [] : src.getRange(2, 1, n - 1, 2).getValues().map(function (r) { return { email: String(r[0] || '').trim().toLowerCase(), name: String(r[1] || '').trim() }; }).filter(function (m) { return isEmail_(m.email) && m.name; });
+  var sh = sheet_('members'), rows = rows_('members'), idx = {}, upd = 0, add = [];
+  rows.forEach(function (r, i) { idx[String(r[0]).toLowerCase()] = i + 2; });
+  list.forEach(function (m) {
+    var row = idx[m.email];
+    if (row) { if (String(rows[row - 2][1]) !== m.name) { sh.getRange(row, 2).setValue(m.name); upd++; } }
+    else { add.push([m.email, m.name, '']); idx[m.email] = -1; }
+  });
+  if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, MEMBER_HEAD.length).setValues(add);
+  bust_('members');
+  return ['名簿 ' + list.length + ' 人', '更新 ' + upd + ' 人・追加 ' + add.length + ' 人', '（名簿にいない人はそのまま残しています）'];
 }
 
 function setLinks(list) {
@@ -1004,12 +1040,53 @@ function getCalendar(ymd) {
     return { id: ev.getId(), title: ev.getTitle() || '（タイトルなし）', allDay: allDay,
              start: allDay ? '' : Utilities.formatDate(ev.getStartTime(), TZ, 'HH:mm'), end: allDay ? '' : Utilities.formatDate(ev.getEndTime(), TZ, 'HH:mm'),
              startYmd: Utilities.formatDate(ev.getStartTime(), TZ, 'yyyy-MM-dd'), endYmd: Utilities.formatDate(ev.getEndTime(), TZ, 'yyyy-MM-dd'),
-             location: ev.getLocation() || '' };
+             location: ev.getLocation() || '', description: ev.getDescription ? ev.getDescription() || '' : '',
+             canEdit: !!(ev.isOwnedByMe && ev.isOwnedByMe()) && !(ev.isRecurringEvent && ev.isRecurringEvent()) }; // 変更できるのは自分が作った1回きりの予定だけ
   }) };
 }
 
+// ---------- 予定の追加・変更・削除（開いた本人のカレンダー。2026-10-31〜） ----------
+// p = { id(変更のとき), title, date(yyyy-MM-dd), allDay, start(HH:mm), end(HH:mm), location, description }
+function saveCalEvent(p) {
+  p = p || {};
+  var title = String(p.title || '').trim();
+  if (!title) throw new Error('予定の件名を入力してください');
+  var date = String(p.date || '').trim();
+  if (!ymdOk_(date)) throw new Error('日付の形が正しくありません');
+  var allDay = !!p.allDay, s, e;
+  if (!allDay) {
+    var st = String(p.start || '').trim(), en = String(p.end || '').trim();
+    if (!hmOk_(st) || !hmOk_(en)) throw new Error('開始と終了の時刻を入力してください');
+    if (en <= st) throw new Error('終了は開始より後の時刻にしてください');
+    s = new Date(date + 'T' + st + ':00+09:00'); e = new Date(date + 'T' + en + ':00+09:00');
+  }
+  var opt = { location: String(p.location || '').trim(), description: String(p.description || '').trim() };
+  var cal = CalendarApp.getDefaultCalendar();
+  if (p.id) {
+    var ev = editableEvent_(cal, String(p.id));
+    ev.setTitle(title);
+    if (allDay) ev.setAllDayDate(new Date(date + 'T00:00:00+09:00')); else ev.setTime(s, e);
+    ev.setLocation(opt.location); ev.setDescription(opt.description);
+  } else if (allDay) cal.createAllDayEvent(title, new Date(date + 'T00:00:00+09:00'), opt);
+  else cal.createEvent(title, s, e, opt);
+  return getCalendar(date);
+}
+function deleteCalEvent(id, date) {
+  editableEvent_(CalendarApp.getDefaultCalendar(), String(id || '')).deleteEvent();
+  return getCalendar(date);
+}
+function editableEvent_(cal, id) {
+  var ev = id ? cal.getEventById(id) : null;
+  if (!ev) throw new Error('その予定は見つかりません（削除された可能性があります）');
+  if (ev.isOwnedByMe && !ev.isOwnedByMe()) throw new Error('招待された予定は変更できません（Google カレンダーで開いてください）');
+  if (ev.isRecurringEvent && ev.isRecurringEvent()) throw new Error('繰り返しの予定は Google カレンダーで変更してください');
+  return ev;
+}
+
 // ---------- 新着メール（開いた本人の受信トレイの未読） ----------
+// Gmail は読み取り専用の権限（gmail.readonly）で読むため、Gmail API（高度なサービス）を使う。テストのモックでは GmailApp
 function getMail() {
+  if (typeof Gmail !== 'undefined') return getMailApi_();
   var threads = GmailApp.search('is:unread in:inbox', 0, MAIL_MAX);
   var list = threads.map(function (th) {
     var msgs = th.getMessages(), m = msgs[msgs.length - 1];
@@ -1020,6 +1097,20 @@ function getMail() {
              date: Utilities.formatDate(m.getDate(), TZ, 'yyyy-MM-dd HH:mm'), snippet: snippet, count: msgs.length };
   });
   return { unread: GmailApp.getInboxUnreadCount(), list: list, fetched: now_() };
+}
+function getMailApi_() {
+  var res = Gmail.Users.Messages.list('me', { q: 'is:unread in:inbox', maxResults: MAIL_MAX });
+  var list = (res.messages || []).map(function (x) {
+    var m = Gmail.Users.Messages.get('me', x.id, { format: 'metadata', metadataHeaders: ['From', 'Subject'] });
+    var h = {}; ((m.payload && m.payload.headers) || []).forEach(function (y) { h[y.name] = y.value; });
+    var from = String(h.From || '');
+    var fm = /^"?([^"<]*)"?\s*<([^>]+)>/.exec(from);
+    var snippet = String(m.snippet || '').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').slice(0, 100);
+    return { id: m.threadId, from: fm ? fm[1].trim() || fm[2] : from, fromEmail: fm ? fm[2] : from, subject: h.Subject || '（件名なし）',
+             date: Utilities.formatDate(new Date(Number(m.internalDate)), TZ, 'yyyy-MM-dd HH:mm'), snippet: snippet, count: 1 };
+  });
+  var inbox = Gmail.Users.Labels.get('me', 'INBOX');
+  return { unread: Number(inbox.messagesUnread || 0), list: list, fetched: now_() };
 }
 </script>
 <script>// サンプルデータ（架空・8人・タスク 約20件・カレンダー・未読メール）と google.script.run のモック
@@ -1084,7 +1175,9 @@ function getMail() {
     ev('c3', '一宮西病院 原稿打合せ', 0, '13:30', '14:30'),
     { id: 'c4', title: '11月号 原稿締切 週', start: new RealDate(ymd(0) + 'T00:00:00+09:00'), end: new RealDate(ymd(1) + 'T00:00:00+09:00'), allDay: true },
     ev('c5', '営業会議', 1, '10:00', '11:00'),
-    ev('c6', 'ウィズダム様 訪問', -1, '14:00', '15:00')
+    ev('c6', 'ウィズダム様 訪問', -1, '14:00', '15:00'),
+    ev('c7', '朝礼（毎週）', 0, '08:30', '08:45', { recurring: true }),
+    ev('c8', '【招待】中広 VC 定例', 0, '11:00', '11:30', { notMine: true })
   ];
   __env.calendar[S] = [ev('s1', 'ヘアサロンmoon 訪問', 0, '14:00', '15:00'), ev('s2', '営業会議', 1, '10:00', '11:00')];
   __env.calendar[K] = [ev('k1', '一宮建設 打合せ', 0, '11:00', '12:00')];
@@ -1438,20 +1531,54 @@ function renderCal(r) {
   var lo = from * 60, hi = to * 60;
   timed.forEach(function (e) { var s = e.startYmd < r.date ? 0 : mins(e.start, lo); var en = e.endYmd > r.date ? 1440 : mins(e.end, hi); lo = Math.min(lo, Math.floor(s / 60) * 60); hi = Math.max(hi, Math.ceil(en / 60) * 60); });
   var html = '';
-  if (allday.length) html += '<div class="allday">' + allday.map(function (e) { return '<div class="ad">' + esc(e.title) + '</div>'; }).join('') + '</div>';
-  html += '<div class="tl" style="height:' + ((hi - lo) / 60 * H) + 'px">';
+  S.calLo = lo; S.calEvents = {}; r.events.forEach(function (e) { S.calEvents[e.id] = e; });
+  if (allday.length) html += '<div class="allday">' + allday.map(function (e) { return '<div class="ad' + (e.canEdit ? '' : ' ro') + '" data-ev="' + esc(e.id) + '" title="' + (e.canEdit ? '押すと編集' : 'Google カレンダーで開く') + '">' + esc(e.title) + '</div>'; }).join('') + '</div>';
+  html += '<div class="tl" id="calTl" style="height:' + ((hi - lo) / 60 * H) + 'px" title="空いた時間を押すと予定を追加">';
   for (var m = lo; m < hi; m += 60) html += '<div class="hr"><span>' + ('0' + (m / 60)).slice(-2) + ':00</span></div>';
   timed.forEach(function (e, i) {
     var s = e.startYmd < r.date ? 0 : mins(e.start, lo), en = e.endYmd > r.date ? 1440 : mins(e.end, hi);
     var top = (Math.max(s, lo) - lo) / 60 * H, h = Math.max((Math.min(en, hi) - Math.max(s, lo)) / 60 * H - 2, 22);
-    var href = 'https://calendar.google.com/calendar/u/0/r/day/' + r.date.replace(/-/g, '/');
-    html += '<a class="ev c' + (i % 5 + 1) + '" href="' + href + '" target="_blank" rel="noopener" style="top:' + top + 'px;height:' + h + 'px" title="' + esc(e.title) + (e.location ? ' @ ' + e.location : '') + '"><b>' + esc(e.title) + '</b><small>' + esc(e.start) + '〜' + esc(e.end) + '</small></a>';
+    html += '<a class="ev c' + (i % 5 + 1) + (e.canEdit ? '' : ' ro') + '" data-ev="' + esc(e.id) + '" style="top:' + top + 'px;height:' + h + 'px" title="' + esc(e.title) + (e.location ? ' @ ' + e.location : '') + '"><b>' + esc(e.title) + '</b><small>' + esc(e.start) + '〜' + esc(e.end) + '</small></a>';
   });
   if (r.date === S.today) { var n = new Date(), nm = n.getHours() * 60 + n.getMinutes(); if (nm >= lo && nm <= hi) html += '<div class="nowline" style="top:' + ((nm - lo) / 60 * H) + 'px"></div>'; }
   html += '</div>';
   if (!r.events.length) html = '<div class="empty" style="padding:14px">予定はありません</div>' + html;
+  html += '<div class="hint-add">空いた時間を押すと予定を追加</div>';
   $('cal').innerHTML = html;
+  $('cal').querySelectorAll('[data-ev]').forEach(function (el) { el.onclick = function (ev) { ev.preventDefault(); ev.stopPropagation(); var e = S.calEvents[el.dataset.ev]; if (e.canEdit) eventModal(e); else window.open(calDayUrl(r.date), '_blank', 'noopener'); }; });
+  var tl = $('calTl'); if (tl) tl.onclick = function (ev) { if (ev.target !== tl && !ev.target.classList.contains('hr') && ev.target.tagName !== 'SPAN') return; var y = ev.clientY - tl.getBoundingClientRect().top; var mm = S.calLo + Math.floor(y / H * 2) * 30; eventModal({ date: r.date, start: hm(mm), end: hm(Math.min(mm + 60, 1439)) }); };
 }
+function hm(mm) { return ('0' + Math.floor(mm / 60)).slice(-2) + ':' + ('0' + (mm % 60)).slice(-2); }
+function calDayUrl(d) { return 'https://calendar.google.com/calendar/u/0/r/day/' + d.replace(/-/g, '/'); }
+// 予定の追加・編集（自分が作った1回きりの予定だけ編集できる）
+function eventModal(e) {
+  e = e || {}; var isNew = !e.id, date = e.date || e.startYmd || S.calDate || S.today;
+  if (isNew && !e.start) { var n = new Date(), mm = Math.min(Math.max(n.getHours() + 1, S.settings.cal_from || 8), 22) * 60; e.start = hm(mm); e.end = hm(mm + 60); }
+  modal('<div class="mh"><h3>' + (isNew ? '予定を追加' : '予定を編集') + '</h3><span class="sp"></span><a class="hint" href="' + calDayUrl(date) + '" target="_blank" rel="noopener">Google カレンダーで開く ↗</a></div><div class="mb">' +
+    '<div class="field"><label>件名</label><input id="vTitle" type="text" value="' + esc(e.title || '') + '" placeholder="例: ○○様 打合せ"></div>' +
+    '<div class="row2"><div class="field"><label>日付</label><input id="vDate" type="date" value="' + esc(date) + '"></div><div class="field"><label>終日</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="vAll" style="width:auto;height:auto;margin:0"' + (e.allDay ? ' checked' : '') + '>終日の予定</label></div></div>' +
+    '<div class="row2" id="vTimes"><div class="field"><label>開始</label><input id="vStart" type="time" step="300" value="' + esc(e.start || '') + '"></div><div class="field"><label>終了</label><input id="vEnd" type="time" step="300" value="' + esc(e.end || '') + '"></div></div>' +
+    '<div class="field"><label>場所（任意）</label><input id="vLoc" type="text" value="' + esc(e.location || '') + '"></div>' +
+    '<div class="field"><label>メモ（任意）</label><textarea id="vDesc" rows="2">' + esc(e.description || '') + '</textarea></div>' +
+    '<p class="hint" style="margin:0">あなたの Google カレンダーに保存されます</p></div>' +
+    '<div class="mf">' + (isNew ? '' : '<button class="btn danger" id="vDel">削除</button>') + '<span class="sp"></span><button class="btn" data-close>やめる</button><button class="btn primary" id="vSave">保存</button></div>', function (bg) {
+    var all = bg.querySelector('#vAll'), times = bg.querySelector('#vTimes');
+    function sync() { times.classList.toggle('hide', all.checked); } all.onchange = sync; sync();
+    bg.querySelector('#vTitle').focus();
+    bg.querySelector('#vStart').onchange = function () { var s = this.value, en = bg.querySelector('#vEnd'); if (s && (!en.value || en.value <= s)) { var p = s.split(':'); en.value = hm(Math.min(+p[0] * 60 + +p[1] + 60, 1439)); } };
+    bg.querySelector('#vSave').onclick = function () {
+      var b = this; b.disabled = true;
+      var p = { id: e.id || '', title: bg.querySelector('#vTitle').value, date: bg.querySelector('#vDate').value, allDay: all.checked, start: bg.querySelector('#vStart').value, end: bg.querySelector('#vEnd').value, location: bg.querySelector('#vLoc').value, description: bg.querySelector('#vDesc').value };
+      call('saveCalEvent', p).then(function (r) { bg.remove(); S.calCache = {}; S.calCache[r.date] = r; S.calDate = r.date; loadCal(); toast(isNew ? '予定を追加しました' : '予定を変更しました'); }).catch(function (err) { b.disabled = false; fail(err); });
+    };
+    var d = bg.querySelector('#vDel'); if (d) d.onclick = function () {
+      modal('<div class="mh"><h3>この予定を削除しますか？</h3></div><div class="mb"><p style="margin:0">「' + esc(e.title) + '」をあなたの Google カレンダーから削除します。</p></div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn danger" id="vDelYes">削除する</button></div>', function (b2) {
+        b2.querySelector('#vDelYes').onclick = function () { call('deleteCalEvent', e.id, date).then(function (r) { b2.remove(); bg.remove(); S.calCache = {}; S.calCache[r.date] = r; loadCal(); toast('予定を削除しました'); }).catch(fail); };
+      });
+    };
+  });
+}
+$('calAdd').onclick = function () { eventModal({ date: S.calDate || S.today }); };
 function shiftCal(n) { var d = new Date((S.calDate || S.today) + 'T00:00:00'); d.setDate(d.getDate() + n); S.calDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); loadCal(); }
 $('calPrev').onclick = function () { shiftCal(-1); }; $('calNext').onclick = function () { shiftCal(1); }; $('calToday').onclick = function () { S.calDate = S.today; loadCal(true); };
 
