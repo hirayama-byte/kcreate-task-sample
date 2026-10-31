@@ -5,6 +5,7 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
 <title>タスク管理 サンプル版</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
@@ -215,12 +216,13 @@
     #calCard, #mailCard { display: none; }
     #boardCard, #createCard { grid-column: 1; grid-row: auto; }
     #createCard { overflow: visible; scroll-margin-top: 104px; } /* 上の固定バーの下に見出しが来るように */
-    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; flex: none; } /* 枠の中ではスクロールせず、ページごと縦に流す */
+    .board { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px; overflow: visible; flex: none; } /* 枠の中ではスクロールせず、ページごと縦に流す */
     #boardCard .card-h { flex-wrap: wrap; } .legend { white-space: normal; flex-wrap: wrap; } #doneBtn { display: none; } /* 完了したタスクは上のメニューから */
     .row2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .tbl table { font-size: 12.5px; }
   }
-  @media (max-width: 360px) { .board { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 900px) { .note { padding: 7px 7px 6px; } .note .nt { font-size: 12.5px; } .note .meta .due { font-size: 10.5px; white-space: normal; } /* 狭い付箋では時刻を次の行へ */ .note .foot { justify-content: flex-end; } }
+  @media (max-width: 340px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
@@ -1497,6 +1499,7 @@ $('aMember').onclick = function () { call('setMemberProfile', $('aEmail').value,
 boot();
 </script>
 <!-- サンプル版だけに付ける帯（人の切り替え） -->
+<style>@media (max-width: 900px) { #demoBar { right: 8px !important; bottom: 8px !important; padding: 6px 8px !important; gap: 6px !important; } #demoBar > span { display: none; } main { padding-bottom: 70px !important; } } /* 帯が一番下のボタンに重ならないように */</style>
 <div id="demoBar" style="position:fixed;right:16px;bottom:16px;z-index:30;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:10px 12px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 32px)">
   <b style="background:#f59e0b;color:#111;border-radius:4px;padding:1px 6px">サンプル版</b>
   <span>データは架空・カレンダーとメールも架空・保存されません</span>
