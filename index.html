@@ -206,6 +206,14 @@
     .board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .cal { max-height: 320px; }
   }
+  /* タスクの作成: 上下を詰めて、よくある画面の高さでスクロールが出ないように（2026-10-31） */
+  #createCard .card-h { padding: 8px 14px; }
+  #createCard .card-b { padding: 10px 14px 12px; }
+  #createCard .field { margin-bottom: 7px; }
+  #createCard .field label { margin-bottom: 2px; font-size: 11.5px; }
+  #createCard input:not([type=checkbox]), #createCard .seg button { height: 32px; }
+  #createCard textarea { padding: 6px 10px; line-height: 1.5; }
+  #createCard .checks { max-height: 120px; }
   .mcreate { display: none; }
   /* スマホ: 上のバー（タスク管理＋タスクの作成＋メニュー）を固定し、下はタスク一覧→作成画面を縦スクロールだけで見る。カレンダー・Gmail・リンク集は出さない */
   @media (max-width: 900px) {
@@ -258,7 +266,7 @@
           <div class="card-h"><h2>タスクの作成</h2></div>
           <div class="card-b">
             <div class="field"><label>見出し</label><input id="cTitle" type="text" placeholder="例: 11月号 入稿確認"></div>
-            <div class="field"><label>内容</label><textarea id="cBody" rows="3" placeholder="やることの説明"></textarea></div>
+            <div class="field"><label>内容</label><textarea id="cBody" rows="2" placeholder="やることの説明"></textarea></div>
             <div class="row2"><div class="field"><label>締切</label><input id="cDue" type="date"></div><div class="field"><label>時刻（任意）</label><input id="cDueTime" type="time"></div></div>
             <div class="row2"><div class="field"><label>所要時間（分）</label><input id="cMins" type="number" min="1" step="5" placeholder="例: 30"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="cImportant" style="width:auto;height:auto;margin:0">重要（ピンク）</label></div></div>
             <div class="field"><label>リンク（任意）</label><input id="cLink" type="url" placeholder="https://"></div>
@@ -574,6 +582,15 @@ var DEFAULT_SETTINGS = [
 var DATE_COLS = { tasks: [4, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
 
 function doGet(e) {
+  // 権限を足したあと（例: 2026-10-31 カレンダーの書き込み）は、許可が足りない人に「許可する」画面を出す。出さないとカレンダー・メールが「承認が必要です」のままになる
+  var auth = authPage_(); if (auth) return auth;
+  // ?auth=1: カレンダーと Gmail に実際に触れて、足りない許可を Google の許可画面で求める（画面の「許可する」ボタンから開く）
+  if (e && e.parameter && e.parameter.auth) {
+    CalendarApp.getDefaultCalendar().getId();
+    if (typeof Gmail !== 'undefined') Gmail.Users.Labels.get('me', 'INBOX');
+    var back = ScriptApp.getService().getUrl();
+    return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;max-width:460px;margin:60px auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;line-height:1.8"><h2 style="margin:0 0 8px;font-size:18px">許可が完了しました</h2><p style="margin:0 0 16px;color:#475569;font-size:14px">タスク管理に戻ってください。</p><a href="' + back + '" target="_top" style="display:inline-block;background:#0d9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">タスク管理に戻る</a></div>').setTitle('タスク管理：許可が完了しました');
+  }
   if (e && e.parameter && e.parameter.setup === 'staff') return HtmlService.createHtmlOutput('<pre style="font-size:14px;line-height:1.7">' + syncStaff_().join('\n') + '</pre>').setTitle('名簿から登録');
   return HtmlService.createTemplateFromFile('index').evaluate()
     .setTitle('タスク管理')
@@ -684,6 +701,7 @@ function init() {
   var s = settings_();
   return {
     me: me,
+    appUrl: (function () { try { return ScriptApp.getService().getUrl(); } catch (err) { return ''; } })(),
     members: membersList_(),
     links: links_(),
     settings: { company: s.company || '', remind_minutes: Number(s.remind_minutes || 5), cal_from: Number(s.cal_from || 8), cal_to: Number(s.cal_to || 20) },
@@ -723,6 +741,15 @@ function saveProfile_(email, p) {
   if (row) sh.getRange(row, 1, 1, vals.length).setValues([vals]); else sh.appendRow(vals);
   bust_('members');
   return member_(email);
+}
+
+function authPage_() {
+  try {
+    var info = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
+    if (info.getAuthorizationStatus() !== ScriptApp.AuthorizationStatus.REQUIRED) return null;
+    var url = info.getAuthorizationUrl();
+    return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;max-width:460px;margin:60px auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;line-height:1.8"><h2 style="margin:0 0 8px;font-size:18px">タスク管理：許可の追加が必要です</h2><p style="margin:0 0 16px;color:#475569;font-size:14px">カレンダーの予定を画面から追加・編集できるようになりました。続けるには Google の許可画面で「許可」を押してください（1回だけ）。</p><a href="' + url + '" target="_top" style="display:inline-block;background:#0d9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">許可する</a><p style="margin:16px 0 0;color:#94a3b8;font-size:12px">許可が終わったら、このページを開き直してください。</p></div>').setTitle('タスク管理：許可が必要です');
+  } catch (err) { return null; } // テスト環境など ScriptApp が使えないときは通常の画面
 }
 
 // 社内スタッフ名簿 → members（名前を更新・いない人は追加。名簿にいない人はそのまま）。管理者が ?setup=staff を開く
@@ -1224,7 +1251,7 @@ function call(name) {
   return new Promise(function (ok, ng) { var r = google.script.run.withSuccessHandler(ok).withFailureHandler(ng); r[name].apply(r, args); });
 }
 function toast(msg, err) { var t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, err ? 5000 : 2500); }
-function fail(e) { toast((e && e.message) || String(e), true); }
+function fail(e) { var m = (e && e.message) || String(e); toast(/承認|authoriz/i.test(m) ? '許可が足りません。ページを開き直して「許可する」を押してください' : m, true); }
 function modal(html, onOpen) {
   var bg = document.createElement('div'); bg.className = 'modal-bg'; bg.innerHTML = '<div class="modal">' + html + '</div>';
   bg.addEventListener('click', function (e) { if (e.target === bg) bg.remove(); });
@@ -1264,7 +1291,7 @@ $('mCreate').onclick = function () { show('dash'); setTimeout(function () { $('c
 // ---------- 起動 ----------
 function boot() {
   call('init').then(function (r) {
-    S.me = r.me; S.members = r.members; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.today = r.today; S.board = r.board; S.sent = r.sent;
+    S.me = r.me; S.members = r.members; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.appUrl = r.appUrl || ''; S.today = r.today; S.board = r.board; S.sent = r.sent;
     if (!S.calDate) S.calDate = r.today;
     $('meMail').textContent = r.me.email;
     if (r.me.name) { $('meName').textContent = r.me.name + (r.me.isAdmin ? '（管理者）' : ''); $('meAv').textContent = initial(r.me.name); }
@@ -1522,7 +1549,7 @@ function loadCal(force) {
   $('calOpen').href = 'https://calendar.google.com/calendar/u/0/r/day/' + d.replace(/-/g, '/');
   if (S.calCache[d] && !force) { renderCal(S.calCache[d]); return Promise.resolve(); }
   el.innerHTML = '<div class="empty">読み込み中…</div>';
-  return call('getCalendar', d).then(function (r) { S.calCache[r.date] = r; if (r.date === (S.calDate || S.today)) renderCal(r); }).catch(function (e) { el.innerHTML = '<div class="empty">カレンダーを読めませんでした<br><span class="hint">' + esc(e.message || e) + '</span></div>'; });
+  return call('getCalendar', d).then(function (r) { S.calCache[r.date] = r; if (r.date === (S.calDate || S.today)) renderCal(r); }).catch(function (e) { if (authErr(e)) { el.innerHTML = authBox('カレンダー'); return; } el.innerHTML = '<div class="empty">カレンダーを読めませんでした<br><span class="hint">' + esc(e.message || e) + '</span></div>'; });
 }
 function renderCal(r) {
   var from = S.settings.cal_from || 8, to = S.settings.cal_to || 20, H = 44;
@@ -1593,7 +1620,13 @@ function loadMail() {
     el.innerHTML = r.list.map(function (m) {
       return '<a class="m" href="https://mail.google.com/mail/u/0/#inbox/' + esc(m.id) + '" target="_blank" rel="noopener"><span class="d">' + esc(fmtDt(m.date)) + '</span><span class="f" title="' + esc(m.fromEmail) + '">' + esc(m.from) + '</span><span class="s">' + esc(m.subject) + (m.count > 1 ? ' (' + m.count + ')' : '') + '<small>' + esc(m.snippet) + '</small></span></a>';
     }).join('') || '<div class="empty" style="padding:20px">未読のメールはありません</div>';
-  }).catch(function (e) { el.innerHTML = '<div class="empty">メールを読めませんでした<br><span class="hint">' + esc(e.message || e) + '</span></div>'; });
+  }).catch(function (e) { if (authErr(e)) { el.innerHTML = authBox('メール'); return; } el.innerHTML = '<div class="empty">メールを読めませんでした<br><span class="hint">' + esc(e.message || e) + '</span></div>'; });
+}
+// 権限を足したあとで許可が足りないとき: 「許可する」ボタン（?auth=1 を開くと Google の許可画面が出る）
+function authErr(e) { return /承認|authoriz|permission/i.test((e && e.message) || String(e)); }
+function authBox(what) {
+  var url = (S.appUrl || '') + '?auth=1';
+  return '<div class="empty" style="padding:20px 14px">' + what + 'を表示するには、許可の追加が必要です<br><a class="btn primary" href="' + esc(url) + '" target="_top" style="display:inline-flex;margin-top:10px;text-decoration:none">許可する</a><br><span class="hint">Google の画面で「許可」を押したあと、タスク管理に戻ります（1回だけ）</span></div>';
 }
 $('mailReload').onclick = function () { loadMail().then(function () { toast('更新しました'); }); };
 
