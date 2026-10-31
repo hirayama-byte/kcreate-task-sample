@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>タスク管理 サンプル版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --side: #0f172a; --side-2: #1e293b; --side-line: #273449; --side-text: #94a3b8; --side-hi: #f1f5f9;
+    --bg: #f1f5f9; --card: #fff; --line: #e2e8f0; --line-2: #f1f5f9;
+    --text: #0f172a; --muted: #64748b; --faint: #94a3b8;
+    --accent: #0d9488; --accent-2: #14b8a6; --accent-weak: #f0fdfa;
+    --danger: #dc2626; --ok: #16a34a; --warn: #d97706;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; border: 1px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: padding-box; }
+  .side ::-webkit-scrollbar-thumb { background: #334155; background-clip: padding-box; }
+  .side * { scrollbar-color: #334155 transparent; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: "Noto Sans JP", system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  .num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; }
+  .side { background: var(--side); color: var(--side-text); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 18px 18px 16px; border-bottom: 1px solid var(--side-line); cursor: pointer; position: relative; } /* 押すとダッシュボードに戻る */
+  .brand:hover { background: var(--side-2); }
+  .brand .bdg { margin-left: auto; font-family: var(--mono); font-size: 11px; background: #f59e0b; color: #111; border-radius: 999px; padding: 1px 7px; }
+  .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #f59e0b, #f97316); display: grid; place-items: center; }
+  .brand b { display: block; color: var(--side-hi); font-size: 14px; }
+  .brand small { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; color: var(--side-text); }
+  #tabs { padding: 12px 10px 4px; display: flex; flex-direction: column; gap: 2px; }
+  #tabs button { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; color: var(--side-text); font: inherit; font-size: 13.5px; padding: 9px 12px; border-radius: 8px; cursor: pointer; text-align: left; }
+  #tabs button svg { width: 17px; height: 17px; flex: none; opacity: .85; }
+  #tabs button:hover { background: var(--side-2); color: var(--side-hi); }
+  #tabs button.on { background: var(--side-2); color: #fff; box-shadow: inset 3px 0 0 #f59e0b; }
+  #tabs button .bdg { margin-left: auto; font-family: var(--mono); font-size: 11px; background: #f59e0b; color: #111; border-radius: 999px; padding: 1px 7px; }
+  .side-sec { padding: 14px 22px 6px; font-size: 10.5px; letter-spacing: .14em; color: #64748b; font-family: var(--mono); text-transform: uppercase; display: flex; align-items: center; }
+  .side-sec button { margin-left: auto; border: 0; background: none; color: #64748b; font: inherit; font-size: 11px; cursor: pointer; }
+  .side-sec button:hover { color: var(--side-hi); }
+  .spacer { flex: 1; }
+  #linksWrap { flex: none; border-top: 1px solid var(--side-line); padding-top: 4px; display: flex; flex-direction: column; min-height: 0; } /* 他のツールと同じく左下から詰める */
+  #links { padding: 0 10px 8px; overflow: auto; max-height: 42vh; }
+  #links a { display: flex; align-items: center; gap: 10px; color: var(--side-text); text-decoration: none; font-size: 13px; padding: 7px 12px; border-radius: 8px; }
+  #links a:hover { background: var(--side-2); color: var(--side-hi); }
+  #links a svg { width: 16px; height: 16px; flex: none; opacity: .85; }
+  #links a .ext { margin-left: auto; font-size: 11px; color: #64748b; }
+  .me { border: 0; border-top: 1px solid var(--side-line); background: none; font: inherit; text-align: left; width: 100%; cursor: pointer; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--side-hi); }
+  .me:hover { background: var(--side-2); }
+  .me .edit-ico { margin-left: auto; color: var(--side-text); font-size: 11px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #334155; color: #e2e8f0; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
+  .me small { display: block; color: var(--side-text); font-size: 11px; }
+  .main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .pill { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 999px; padding: 4px 12px; }
+  .pill b { font-family: var(--mono); color: var(--text); }
+  main { padding: 14px 18px; flex: 1; min-height: 0; overflow: auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+  .card-h { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .card-h h2 { font-size: 14px; margin: 0; }
+  .card-h .sp { flex: 1; }
+  .card-b { padding: 16px; }
+  input, select, textarea, button.btn { font: inherit; font-size: 13.5px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--text); }
+  input, select, button.btn { height: 36px; padding: 0 12px; }
+  textarea { padding: 10px 12px; width: 100%; resize: vertical; line-height: 1.6; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(20,184,166,.15); }
+  input[type=text], input[type=url], input[type=email], input[type=date], input[type=time], input[type=number] { min-width: 0; width: 100%; }
+  button.btn { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; white-space: nowrap; }
+  button.btn:hover { background: #f8fafc; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { background: #0f766e; }
+  button.danger { color: var(--danger); border-color: #fecaca; }
+  button.danger:hover { background: #fef2f2; }
+  button.ghost { border-color: transparent; background: none; color: var(--muted); }
+  button.sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .field { margin-bottom: 12px; } .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hide { display: none !important; }
+  .empty { padding: 36px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; white-space: nowrap; background: var(--tb, #f1f5f9); color: var(--tc, #334155); }
+  .tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tc, #64748b); }
+  .tag.done { --tb: #dcfce7; --tc: #15803d; } .tag.open { --tb: #fef3c7; --tc: #b45309; } .tag.late { --tb: #fee2e2; --tc: #b91c1c; } .tag.today { --tb: #ffedd5; --tc: #c2410c; } .tag.soon { --tb: #e0f2fe; --tc: #0369a1; }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+  .toast.err { background: var(--danger); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: grid; place-items: center; z-index: 40; padding: 16px; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 600px; max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal .mh { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); } .modal .mh h3 { margin: 0; font-size: 15px; } .modal .mh .sp { flex: 1; }
+  .modal .mb { padding: 18px; } .modal .mf { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .modal .mf .sp { flex: 1; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 9px 12px; border-bottom: 1px solid var(--line-2); text-align: left; vertical-align: middle; }
+  thead th { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: .06em; white-space: nowrap; background: #f8fafc; border-bottom: 1px solid var(--line); }
+  tr.row { cursor: pointer; } tr.row:hover td { background: #f8fafc; }
+  .tbl { overflow-x: auto; }
+  .nm { font-weight: 500; } .sub { color: var(--faint); font-size: 12px; margin-top: 2px; }
+
+  /* ---------- ダッシュボード ---------- */
+  .dash { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 280px 250px; grid-template-rows: minmax(0, 72fr) minmax(0, 28fr); gap: 12px; } /* 上 72 : 下（メール）28 */ /* 画面全体はスクロールせず、各枠の中でスクロール */
+  #boardCard { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; min-height: 0; }
+  #createCard { grid-column: 2; grid-row: 1; min-height: 0; overflow: auto; }
+  #calCard { grid-column: 3; grid-row: 1 / span 2; display: flex; flex-direction: column; min-height: 0; }
+  #mailCard { grid-column: 1 / span 2; grid-row: 2; display: flex; flex-direction: column; min-height: 0; }
+  .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 10px; padding: 10px; flex: 1; min-height: 0; overflow: auto; align-content: start; } /* 付箋12枚（4×3）の枠。それ以上は枠の中でスクロール */
+  .note { position: relative; border-radius: 6px; padding: 8px 8px 7px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 14px -8px rgba(0,0,0,.25); cursor: pointer; border: 1px solid rgba(0,0,0,.06); transition: transform .12s; }
+  .note:hover { transform: translateY(-2px); }
+  .note > * { flex: none; min-height: 0; } /* 中身を縦に潰さない */
+  .note.yellow { background: #fefce8; } .note.pink { background: #fce7f3; } .note.green { background: #ecfccb; } .note.blue { background: #e0f2fe; } /* 個人=黄（薄め）・重要=ピンク・チーム=黄緑・全社=水色 */
+  #boardCard .card-h { flex-wrap: nowrap; } #boardCard .card-h h2, #boardCard .card-h .pill, #boardCard .card-h .btn, #boardCard .card-h .legend { flex: none; white-space: nowrap; } #boardHint { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } /* 見出しは1行に収める（足りなければ件数の文だけ省略） */
+  .legend { display: inline-flex; gap: 10px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: -2px; margin-right: 3px; border: 1px solid rgba(0,0,0,.08); }
+  .legend .yellow { background: #fde68a; } .legend .pink { background: #f9a8d4; } .legend .green { background: #bef264; } .legend .blue { background: #7dd3fc; }
+  .note .nt { font-weight: 700; font-size: 13.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* 見出しは1行（見切れてよい） */
+  .note .nb { font-size: 11.5px; color: #334155; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; min-height: 49px; line-height: 1.42; } /* 本文は3行（短くても3行分の高さ） */
+  .note .meta { display: flex; flex-wrap: wrap; gap: 1px 8px; font-size: 11px; color: #475569; align-items: center; justify-content: space-between; } /* 左=締切・右=所要時間 */
+  .note .meta .due { white-space: nowrap; }
+  .note .meta .due { font-family: var(--mono); font-weight: 500; }
+  .note .meta .due.late { color: var(--danger); } .note .meta .due.today { color: #c2410c; }
+  .note .meta .mins { font-family: var(--mono); font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; margin-left: auto; } /* 所要時間（分）は少し大きく */
+  .note .meta .mins.urgent { color: var(--danger); } /* 5分以内は赤 */
+  .note .lbtn { border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.6); border-radius: 6px; height: 24px; padding: 0 7px; font-size: 12px; display: inline-flex; align-items: center; color: #0369a1; text-decoration: none; flex: none; white-space: nowrap; } /* リンクは完了のすぐ左 */
+  .note .lbtn:hover { background: #fff; }
+  .note .who { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; }
+  .note .who .av { width: 18px; height: 18px; border-radius: 50%; background: #334155; color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex: none; }
+  .note .foot { display: flex; align-items: center; gap: 3px; margin-top: 1px; flex-wrap: wrap; justify-content: flex-end; row-gap: 4px; } /* 狭い画面だけ完了ボタンを次の行へ */
+  .note .foot .qbtn { margin-right: auto; width: 26px; padding: 0; justify-content: center; } /* 💬 はアイコンだけ（件数は丸い印） */
+  .note .foot .qbtn.has { border-color: rgba(3,105,161,.35); }
+  .note .foot .qbtn .ub { position: absolute; top: -6px; right: -7px; min-width: 16px; text-align: center; }
+  .note .foot .qbtn, .note .foot .lbtn, .note .foot .donebtn { font-size: 11px; height: 24px; }
+  .note .foot .lbtn { padding: 0 4px; gap: 1px; } .note .foot .donebtn { padding: 0 7px; }
+  .note .foot .sp { flex: 1; }
+  .note .qbtn { border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.6); border-radius: 6px; height: 24px; padding: 0 8px; font: inherit; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: #334155; position: relative; }
+  .note .qbtn:hover { background: #fff; }
+  .note .qbtn .ub { background: var(--danger); color: #fff; border-radius: 999px; font-size: 10px; font-family: var(--mono); padding: 0 5px; line-height: 16px; }
+  .note .donebtn { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; height: 24px; padding: 0 9px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex: none; }
+  .note .qbtn { white-space: nowrap; flex: none; padding: 0 6px; }
+  .note .who { flex-wrap: wrap; } .note .who .prog { margin-left: auto; white-space: nowrap; }
+  .note .donebtn:hover { background: #0f766e; }
+  .note .donebtn.sent { background: #fff; color: #334155; border-color: rgba(0,0,0,.15); }
+  .note .prog { font-size: 11px; font-family: var(--mono); color: #475569; }
+  .board .empty { grid-column: 1 / -1; }
+  .board.more::after { content: ""; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .checks { max-height: 150px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; } /* 相手のチェック一覧（外したい人はチェックを外す） */
+  .checks label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text); margin: 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 0; }
+  .checks label.off { color: var(--faint); text-decoration: line-through; }
+  .checks input { width: auto; height: auto; margin: 0; flex: none; }
+  .chip { font: inherit; font-size: 12px; background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; height: auto; }
+  .chip.on { background: var(--accent-weak); color: var(--accent); border-color: #99f6e4; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; font: inherit; font-size: 13px; padding: 0 12px; height: 34px; cursor: pointer; color: var(--muted); }
+  .seg button.on { background: var(--accent); color: #fff; }
+  /* 本日のスケジュール */
+  .cal { position: relative; padding: 8px 10px 12px 10px; overflow: auto; flex: 1; min-height: 0; }
+  .cal .allday { margin: 0 0 8px 44px; display: flex; flex-direction: column; gap: 4px; }
+  .cal .tl { position: relative; }
+  .cal .hr { height: 44px; border-top: 1px solid var(--line-2); position: relative; font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .cal .hr span { position: absolute; top: -8px; left: 0; background: #fff; padding-right: 4px; }
+  .cal .ev { position: absolute; left: 44px; right: 4px; border-radius: 6px; padding: 4px 8px; font-size: 12px; line-height: 1.35; overflow: hidden; color: #fff; background: #0ea5e9; border-left: 3px solid rgba(0,0,0,.25); box-shadow: 0 1px 2px rgba(0,0,0,.15); text-decoration: none; }
+  .cal .ev b { display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal .ev small { font-family: var(--mono); font-size: 10.5px; opacity: .9; }
+  .cal .ev.c1 { background: #dc2626; } .cal .ev.c2 { background: #0ea5e9; } .cal .ev.c3 { background: #16a34a; } .cal .ev.c4 { background: #7c3aed; } .cal .ev.c5 { background: #d97706; }
+  .cal .ad { background: #e0f2fe; color: #0c4a6e; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 500; }
+  .cal .nowline { position: absolute; left: 40px; right: 0; height: 2px; background: var(--danger); z-index: 2; }
+  .cal .nowline::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+  .calnav { display: inline-flex; gap: 2px; } .calnav button { height: 28px; padding: 0 8px; }
+  /* 新着メール */
+  .mail { flex: 1; min-height: 0; overflow: auto; } /* メールは枠の中でスクロール */
+  .mail .m { display: grid; grid-template-columns: 110px 160px minmax(0, 1fr); gap: 12px; padding: 9px 16px; border-bottom: 1px solid var(--line-2); text-decoration: none; color: inherit; align-items: baseline; }
+  .mail .m:hover { background: #f8fafc; }
+  .mail .m .d { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .mail .m .f { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mail .m .s { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mail .m .s small { color: var(--faint); font-size: 12px; margin-left: 8px; }
+  /* 詳細 */
+  .detail .body { white-space: pre-wrap; line-height: 1.7; background: #fafafa; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; }
+  .detail dl { display: grid; grid-template-columns: 90px 1fr; gap: 6px 10px; margin: 12px 0; font-size: 13px; }
+  .detail dt { color: var(--muted); } .detail dd { margin: 0; }
+  .detail .people { display: flex; flex-direction: column; gap: 4px; }
+  .detail .people div { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .detail .people .t { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-left: auto; }
+  .thread { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow: auto; margin-bottom: 10px; }
+  .thread .c { background: #f1f5f9; border-radius: 10px; padding: 8px 12px; max-width: 86%; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+  .thread .c.mine { background: var(--accent-weak); align-self: flex-end; }
+  .thread .c.new { box-shadow: inset 0 0 0 1px #fca5a5; }
+  .thread .c small { display: block; color: var(--muted); font-size: 11px; font-family: var(--mono); margin-bottom: 2px; }
+  .ask { display: flex; gap: 8px; align-items: flex-end; } .ask textarea { min-height: 60px; }
+  .remind li { margin: 4px 0; line-height: 1.6; } .remind li b { cursor: pointer; color: #0369a1; }
+  .notice { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.7; margin-bottom: 14px; }
+  .linkrows div { display: grid; grid-template-columns: 1fr 1.6fr auto; gap: 8px; margin-bottom: 8px; }
+  @media (max-width: 1280px) {
+    .dash { grid-template-columns: minmax(0, 1fr) 280px; }
+    #calCard { grid-column: 2; grid-row: 2; } #mailCard { grid-column: 1; grid-row: 2; } #createCard { grid-column: 2; grid-row: 1; }
+    .board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cal { max-height: 320px; }
+  }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; height: auto; }
+    .main { display: block; } main { overflow: visible; }
+    .side { position: static; height: auto; min-width: 0; }
+    .spacer { display: none; }
+    #tabs { flex-direction: row; overflow-x: auto; flex: none; } #tabs button { width: auto; white-space: nowrap; }
+    #linksWrap { border-top: 0; padding-top: 0; } .side-sec { display: none; } #links { display: flex; gap: 4px; overflow-x: auto; padding: 0 10px 10px; } #links a { white-space: nowrap; padding: 6px 10px; } #links a .ext { display: none; }
+    .me { display: none; }
+    main { padding: 14px; }
+    .dash { grid-template-columns: 1fr; height: auto; grid-template-rows: auto; }
+    .mail { max-height: 320px; }
+    #boardCard, #createCard, #calCard, #mailCard { grid-column: 1; grid-row: auto; }
+    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #boardCard .card-h { flex-wrap: wrap; } .legend { white-space: normal; flex-wrap: wrap; }
+    .cal { max-height: 420px; }
+    .mail .m { grid-template-columns: 1fr; gap: 2px; }
+    .row2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand" id="brand" title="ダッシュボードに戻る"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div><b>タスク管理</b><small>K-CREATE</small></div><span class="bdg hide" id="bdgBoard" title="返事・質問の未読"></span></div>
+    <nav id="tabs">
+      <button data-tab="sent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>発信したタスク<span class="bdg hide" id="bdgSent"></span></button>
+      <button data-tab="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>完了したタスク</button>
+      <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>設定</button>
+    </nav>
+    <div class="spacer"></div>
+    <div id="linksWrap"><div class="side-sec">リンク集<button id="linksEdit" class="hide" title="リンク集を編集">編集</button></div><div id="links"></div></div>
+    <button class="me" id="meBtn"><span class="avatar" id="meAv">?</span><span><span id="meName">名前を登録</span><small id="meMail"></small></span><span class="edit-ico">変更</span></button>
+  </aside>
+  <div class="main">
+    <main>
+      <!-- ダッシュボード -->
+      <section id="dash" class="dash">
+        <div class="card" id="boardCard">
+          <div class="card-h"><h2>タスク管理一覧</h2><span class="hint" id="boardHint"></span><span class="sp"></span><span class="legend"><span><i class="yellow"></i>個人</span><span><i class="pink"></i>重要</span><span><i class="green"></i>チーム</span><span><i class="blue"></i>全社</span></span><button class="btn sm" id="doneBtn">完了したタスク</button><button class="btn sm ghost" id="boardReload" title="最新に更新">⟳</button></div>
+          <div class="board" id="board"></div>
+        </div>
+        <div class="card" id="createCard">
+          <div class="card-h"><h2>タスクの作成</h2></div>
+          <div class="card-b">
+            <div class="field"><label>見出し</label><input id="cTitle" type="text" placeholder="例: 11月号 入稿確認"></div>
+            <div class="field"><label>内容</label><textarea id="cBody" rows="3" placeholder="やることの説明"></textarea></div>
+            <div class="row2"><div class="field"><label>締切</label><input id="cDue" type="date"></div><div class="field"><label>時刻（任意）</label><input id="cDueTime" type="time"></div></div>
+            <div class="row2"><div class="field"><label>所要時間（分）</label><input id="cMins" type="number" min="1" step="5" placeholder="例: 30"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="cImportant" style="width:auto;height:auto;margin:0">重要（ピンク）</label></div></div>
+            <div class="field"><label>リンク（任意）</label><input id="cLink" type="url" placeholder="https://"></div>
+            <div class="field"><label>誰のタスク</label><div class="seg"><button id="cSelf" class="on">個人</button><button id="cTeam">チーム</button><button id="cCompany">全社</button></div></div>
+            <div class="field hide" id="cToWrap"><label style="display:flex;align-items:center;gap:4px"><span id="cToLabel">共有する相手</span>（<b id="cToN">0</b> 人）<span style="flex:1"></span><button class="btn sm ghost" id="cAll" style="height:22px;padding:0 6px;font-size:11px">全員</button><button class="btn sm ghost" id="cNone" style="height:22px;padding:0 6px;font-size:11px">解除</button></label><div class="checks" id="cTo"></div><label class="hint" style="margin-top:8px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="cMe" style="width:auto;height:auto;margin:0">自分のボードにも入れる</label></div>
+            <button class="btn primary" id="cSave" style="width:100%;justify-content:center">タスクを作成</button>
+          </div>
+        </div>
+        <div class="card" id="calCard">
+          <div class="card-h"><h2 id="calTitle">本日のスケジュール</h2><span class="sp"></span><span class="calnav"><button class="btn sm" id="calPrev">‹</button><button class="btn sm" id="calToday">今日</button><button class="btn sm" id="calNext">›</button></span><a class="btn sm" id="calOpen" href="https://calendar.google.com/" target="_blank" rel="noopener" style="text-decoration:none">カレンダーを開く ↗</a></div>
+          <div class="cal" id="cal"><div class="empty">読み込み中…</div></div>
+        </div>
+        <div class="card" id="mailCard">
+          <div class="card-h"><h2>Gmail の新着</h2><span class="pill hide" id="mailUnread">未読 <b id="mailN">0</b> 件</span><span class="sp"></span><span class="hint" id="mailAt"></span><a class="btn sm" href="https://mail.google.com/" target="_blank" rel="noopener" style="text-decoration:none">Gmail を開く ↗</a><button class="btn sm ghost" id="mailReload" title="最新に更新">⟳</button></div>
+          <div class="mail" id="mail"><div class="empty">読み込み中…</div></div>
+        </div>
+      </section>
+
+      <!-- 発信したタスク -->
+      <section id="sent" class="hide">
+        <div class="card">
+          <div class="card-h"><h2>発信したタスク（未完了）</h2><span class="hint">誰が完了したか・まだ対応していないかが分かります。行をクリックで詳細・質問</span><span class="sp"></span><span class="hint" id="sentCount"></span></div>
+          <div class="tbl"><table><thead><tr><th>締切</th><th>見出し</th><th>相手</th><th>進み具合</th><th>質問</th><th>リマインド</th></tr></thead><tbody id="sentBody"></tbody></table></div>
+          <div class="empty hide" id="sentEmpty">発信した未完了のタスクはありません</div>
+        </div>
+      </section>
+
+      <!-- 完了したタスク -->
+      <section id="done" class="hide">
+        <div class="card">
+          <div class="card-h"><h2>完了したタスク</h2><span class="sp"></span><input id="doneMonth" type="month" style="width:160px"><button class="btn sm" id="doneAll">すべて</button></div>
+          <div class="tbl"><table><thead><tr><th>完了日時</th><th>見出し</th><th>種類</th><th>発信者</th><th>締切</th><th></th></tr></thead><tbody id="doneBody"></tbody></table></div>
+          <div class="empty hide" id="doneEmpty">完了したタスクはまだありません</div>
+        </div>
+      </section>
+
+      <!-- 設定 -->
+      <section id="settings" class="hide">
+        <div class="card" style="max-width:640px;margin-bottom:16px"><div class="card-h"><h2>自分の設定</h2></div>
+          <div class="card-b">
+            <div class="field"><label>名前（タスクの発信者・相手として表示されます）</label><input id="sName" type="text"></div>
+            <div class="field"><label>部署・役職（任意）</label><input id="sTitle" type="text"></div>
+            <button class="btn primary" id="sSave">保存</button>
+          </div>
+        </div>
+        <div class="card hide" style="max-width:640px;margin-bottom:16px" id="adminCard"><div class="card-h"><h2>管理者の設定</h2></div>
+          <div class="card-b">
+            <div class="row2"><div class="field"><label>自動更新の間隔（分）</label><input id="aRemind" type="number" min="1" max="120"></div><div class="field"><label>スケジュールの表示時間（開始〜終了）</label><div class="row2"><input id="aFrom" type="number" min="0" max="23"><input id="aTo" type="number" min="1" max="24"></div></div></div>
+            <button class="btn primary" id="aSave">保存</button>
+            <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+            <div class="field"><label>メンバーの名前を代理で登録（まだ使っていない人の事前登録にも）</label><div class="row2"><input id="aEmail" type="email" placeholder="メールアドレス"><input id="aName" type="text" placeholder="名前（フルネーム）"></div></div>
+            <button class="btn" id="aMember">登録</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>// Apps Script の最小限のモック（テスト用）。Node でもブラウザでも動く
+(function (root) {
+  function colNum(s) { var n = 0; for (var i = 0; i < s.length; i++) n = n * 26 + s.charCodeAt(i) - 64; return n; }
+
+  function Sheet(name) { this.name = name; this.data = []; this.textCols = {}; }
+  Sheet.prototype.getName = function () { return this.name; };
+  Sheet.prototype.setName = function (n) { this.name = n; return this; };
+  Sheet.prototype.getMaxRows = function () { return Math.max(this.data.length, 1000); };
+  Sheet.prototype.getLastRow = function () { return this.data.length; };
+  Sheet.prototype.getLastColumn = function () { return this.data.reduce(function (m, r) { return Math.max(m, r.length); }, 0); };
+  Sheet.prototype.appendRow = function (r) { this.data.push(this._conv(r.slice(), 1)); return this; };
+  // 書式が文字列でない列に yyyy-MM-dd を入れると Date になる（実物と同じ落とし穴を再現）
+  Sheet.prototype._conv = function (row, c0) {
+    var self = this;
+    return row.map(function (v, i) {
+      if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !self.textCols[c0 + i]) return new Date(v + 'T00:00:00+09:00');
+      return v;
+    });
+  };
+  Sheet.prototype.getRange = function (a, c, nr, nc) {
+    if (typeof a === 'string') {
+      var m = /^([A-Z]+):([A-Z]+)$/.exec(a);
+      if (m) { var c1 = colNum(m[1]), c2 = colNum(m[2]); return new Range(this, 1, c1, Math.max(this.data.length, 1), c2 - c1 + 1, true); }
+      var m2 = /^([A-Z]+)(\d+)$/.exec(a);
+      return new Range(this, +m2[2], colNum(m2[1]), 1, 1);
+    }
+    return new Range(this, a, c, nr || 1, nc || 1);
+  };
+
+  function Range(sh, r, c, nr, nc, whole) { this.sh = sh; this.r = r; this.c = c; this.nr = nr; this.nc = nc; this.whole = whole; }
+  Range.prototype.getRow = function () { return this.r; };
+  Range.prototype.getValues = function () {
+    var out = [];
+    for (var i = 0; i < this.nr; i++) {
+      var row = this.sh.data[this.r - 1 + i] || [];
+      var o = [];
+      for (var j = 0; j < this.nc; j++) { var v = row[this.c - 1 + j]; o.push(v === undefined ? '' : v); }
+      out.push(o);
+    }
+    return out;
+  };
+  Range.prototype.setValues = function (vals) {
+    for (var i = 0; i < vals.length; i++) {
+      var row = this.sh.data[this.r - 1 + i] || (this.sh.data[this.r - 1 + i] = []);
+      var cv = this.sh._conv(vals[i], this.c);
+      for (var j = 0; j < cv.length; j++) row[this.c - 1 + j] = cv[j];
+    }
+    return this;
+  };
+  Range.prototype.setValue = function (v) { return this.setValues([[v]]); };
+  Range.prototype.setFormulas = function (vals) { return this.setValues(vals); };
+  Range.prototype.setDataValidation = function (rule) { this.sh.validation = this.sh.validation || {}; this.sh.validation[this.c] = rule; return this; };
+  Range.prototype.clearContent = function () { var e = []; for (var i = 0; i < this.nr; i++) { var row = []; for (var j = 0; j < this.nc; j++) row.push(''); e.push(row); } return this.setValues(e); };
+  Range.prototype.getValue = function () { return this.getValues()[0][0]; };
+  Range.prototype.setNumberFormat = function (f) { if (f === '@') for (var j = 0; j < this.nc; j++) this.sh.textCols[this.c + j] = true; return this; };
+  Range.prototype.createTextFinder = function (text) {
+    var self = this, entire = false;
+    var tf = {
+      matchEntireCell: function (b) { entire = b; return tf; },
+      findNext: function () {
+        for (var i = 0; i < self.sh.data.length; i++) for (var j = 0; j < self.nc; j++) {
+          var v = String((self.sh.data[i] || [])[self.c - 1 + j]);
+          if (entire ? v === text : v.indexOf(text) >= 0) return new Range(self.sh, i + 1, self.c + j, 1, 1);
+        }
+        return null;
+      }
+    };
+    return tf;
+  };
+
+  function Spreadsheet(id, name) { this.id = id; this.name = name; this.sheets = [new Sheet('シート1')]; }
+  Spreadsheet.prototype.getId = function () { return this.id; };
+  Spreadsheet.prototype.getUrl = function () { return 'https://docs.google.com/spreadsheets/d/' + this.id; };
+  Spreadsheet.prototype.getSpreadsheetTimeZone = function () { return this.tz || 'GMT'; };
+  Spreadsheet.prototype.setSpreadsheetTimeZone = function (tz) { this.tz = tz; };
+  Spreadsheet.prototype.getSheetByName = function (n) { return this.sheets.filter(function (s) { return s.name === n; })[0] || null; };
+  Spreadsheet.prototype.insertSheet = function (n) { var s = new Sheet(n); this.sheets.push(s); return s; };
+  Spreadsheet.prototype.deleteSheet = function (s) { this.sheets.splice(this.sheets.indexOf(s), 1); };
+  Spreadsheet.prototype.getSheets = function () { return this.sheets.slice(); };
+  Sheet.prototype.deleteRow = function (r) { this.data.splice(r - 1, 1); return this; };
+
+  function pad(n) { return ('0' + n).slice(-2); }
+  function lock_() { return { waitLock: function () {}, tryLock: function () { return true; }, releaseLock: function () {} }; }
+
+  // store: 複数プロジェクトで共有するスプレッドシート置き場
+  function makeEnv(store, opts) {
+    opts = opts || {};
+    var props = {};
+    var env = {
+      user: opts.user || 'owner@k-create.co.jp',
+      now: null, // テストで日時を固定するとき Date を入れる
+      SpreadsheetApp: {
+        create: function (n) { var id = 'sheet' + (Object.keys(store).length + 1); store[id] = new Spreadsheet(id, n); return store[id]; },
+        openById: function (id) { if (!store[id]) throw new Error('no sheet ' + id); return store[id]; },
+        newDataValidation: function () { var b = { list: null, requireValueInList: function (l) { b.list = l; return b; }, setAllowInvalid: function () { return b; }, setHelpText: function () { return b; }, build: function () { return { list: b.list }; } }; return b; }
+      },
+      PropertiesService: {
+        getScriptProperties: function () { return {
+          getProperty: function (k) { return props.hasOwnProperty(k) ? props[k] : null; },
+          setProperty: function (k, v) { props[k] = String(v); }
+        }; },
+        // ユーザーごとの入れ物（本物も人ごとに別）
+        getUserProperties: function () { var u = env.user; env.userProps[u] = env.userProps[u] || {}; var o = env.userProps[u]; return {
+          getProperty: function (k) { return o.hasOwnProperty(k) ? o[k] : null; },
+          setProperty: function (k, v) { o[k] = String(v); }
+        }; }
+      },
+      userProps: {},
+      // 時限トリガー（持ち主ごと）。env.triggers = [{owner, fn}]
+      triggers: [],
+      ScriptApp: {
+        getService: function () { return { getUrl: function () { return opts.scriptUrl || ''; } }; },
+        getProjectTriggers: function () { return env.triggers.filter(function (t) { return t.owner === env.user; }).map(function (t) { return { getHandlerFunction: function () { return t.fn; }, _t: t }; }); },
+        deleteTrigger: function (tr) { var i = env.triggers.indexOf(tr._t); if (i >= 0) env.triggers.splice(i, 1); },
+        newTrigger: function (fn) { var b = { timeBased: function () { return b; }, atHour: function () { return b; }, everyDays: function () { return b; }, everyHours: function () { return b; }, create: function () { env.triggers.push({ owner: env.user, fn: fn }); } }; return b; }
+      },
+      Session: {
+        getActiveUser: function () { return { getEmail: function () { return env.user; } }; },
+        getEffectiveUser: function () { return { getEmail: function () { return opts.owner || 'owner@k-create.co.jp'; } }; }
+      },
+      Utilities: { formatDate: function (d, tz, f) {
+        var off = /^(GMT|UTC|Etc\/)/i.test(String(tz || '')) ? 0 : 9; // 日本時間（+9）か GMT（0）だけ区別する簡易版
+        var t = new Date(d.getTime() + off * 3600000);
+        return f.replace('yyyy', t.getUTCFullYear()).replace('MM', pad(t.getUTCMonth() + 1)).replace('dd', pad(t.getUTCDate()))
+          .replace('HH', pad(t.getUTCHours())).replace('mm', pad(t.getUTCMinutes()));
+      } },
+      LockService: { getScriptLock: lock_, getUserLock: lock_ },
+      // 送ったメールは env.mails に溜まる。MailApp の残り通数は 1500 − 今日送った数（送信者ごと）
+      mails: [],
+      // 受信トレイ（人ごと）: env.inbox[user] = [{id, from, subject, date(Date), body, unread}]。カレンダー: env.calendar[user] = [{id, title, start(Date), end(Date), allDay, location}]
+      inbox: {}, calendar: {},
+      GmailApp: { sendEmail: function (to, subject, body, opt) {
+        if (/@fail\./.test(to)) throw new Error('Invalid email: ' + to);
+        env.mails.push({ from: env.user, to: to, subject: subject, body: body, htmlBody: (opt || {}).htmlBody || '', name: (opt || {}).name || '', at: Date.now() });
+      },
+      search: function (q, start, max) {
+        var list = (env.inbox[env.user] || []).filter(function (m) { return !/is:unread/.test(q) || m.unread; }).sort(function (a, b) { return b.date - a.date; }).slice(start || 0, (start || 0) + (max || 50));
+        return list.map(function (m) { var msg = { getFrom: function () { return m.from; }, getSubject: function () { return m.subject; }, getDate: function () { return m.date; }, getPlainBody: function () { return m.body || ""; }, isUnread: function () { return !!m.unread; }, getId: function () { return m.id; } };
+          return { getId: function () { return m.id; }, getFirstMessageSubject: function () { return m.subject; }, getMessages: function () { return [msg]; }, getLastMessageDate: function () { return m.date; } }; });
+      },
+      getInboxUnreadCount: function () { return (env.inbox[env.user] || []).filter(function (m) { return m.unread; }).length; } },
+      CalendarApp: { getDefaultCalendar: function () { return { getEventsForDay: function (d) {
+        var dayStart = new Date(d.getTime()), dayEnd = new Date(d.getTime() + 86400000);
+        return (env.calendar[env.user] || []).filter(function (e) { return e.start < dayEnd && e.end > dayStart; }).sort(function (a, b) { return a.start - b.start; }).map(function (e) { return {
+          getId: function () { return e.id; }, getTitle: function () { return e.title; }, isAllDayEvent: function () { return !!e.allDay; },
+          getStartTime: function () { return e.start; }, getEndTime: function () { return e.end; }, getLocation: function () { return e.location || ""; } }; });
+      } }; } },
+      MailApp: { sendEmail: function (to, subject, body) { env.notices = env.notices || []; env.notices.push({ from: env.user, to: to, subject: subject, body: body }); }, getRemainingDailyQuota: function () { return 1500 - env.mails.filter(function (m) { return m.from === env.user; }).length; } },
+      ContentService: {
+        MimeType: { JSON: 'json', JAVASCRIPT: 'js' },
+        createTextOutput: function (s) { return { body: s, setMimeType: function (m) { this.mime = m; return this; } }; }
+      },
+      Logger: { log: function () {} },
+      props: props
+    };
+    env.worker = fakeWorker();
+    env.UrlFetchApp = {
+      fetch: function (url, opt) { return env.worker.fetch(url, opt || {}); },
+      fetchAll: function (reqs) { return reqs.map(function (r) { return env.worker.fetch(r.url, r); }); }
+    };
+    return env;
+  }
+
+  // Cloudflare Worker（worker/src/index.js）と同じ受け答えをするメモリ上の偽物（開封・クリック・配信停止）
+  function fakeWorker() {
+    var w = { campaigns: {}, sends: {}, opens: {}, clicks: {}, unsub: {}, token: 'test-token', down: false };
+    function res(code, body) { return { getResponseCode: function () { return code; }, getContentText: function () { return JSON.stringify(body); } }; }
+    function stamp(t) { var d = new Date((t || Date.now()) + 9 * 3600000); return d.toISOString().slice(0, 16).replace('T', ' '); }
+    w.open = function (token, t) { var o = w.opens[token] || (w.opens[token] = { first: stamp(t), count: 0 }); o.count++; };
+    w.click = function (token, n, t) { var c = w.clicks[token] || (w.clicks[token] = {}); c[n] = (c[n] || 0) + 1; if (!w.opens[token]) w.open(token, t); };
+    w.unsubscribe = function (token, t) { w.unsub[token] = stamp(t); };
+    w.fetch = function (url, opt) {
+      if (w.down) return res(503, { error: 'down' });
+      if ((opt.headers || {}).Authorization !== 'Bearer ' + w.token) return res(401, { error: 'unauthorized' });
+      var u = new URL(url), p = u.pathname, q = u.searchParams, m = (opt.method || 'get').toLowerCase();
+      if (p === '/api/dm/campaigns' && m === 'post') { var b = JSON.parse(opt.payload); w.campaigns[b.id] = { links: b.links || [] }; return res(200, { ok: true }); }
+      if (p === '/api/dm/sends' && m === 'post') { JSON.parse(opt.payload).forEach(function (x) { w.sends[x.token] = x.campaign; }); return res(200, { ok: true }); }
+      if (p === '/api/dm/stats' && m === 'get') {
+        var id = q.get('campaign'), out = { opens: {}, clicks: {}, unsub: {} };
+        Object.keys(w.sends).forEach(function (t) { if (w.sends[t] !== id) return; if (w.opens[t]) out.opens[t] = w.opens[t]; if (w.clicks[t]) out.clicks[t] = w.clicks[t]; if (w.unsub[t]) out.unsub[t] = w.unsub[t]; });
+        return res(200, out);
+      }
+      if (p === '/api/dm/summary' && m === 'post') {
+        var out2 = {};
+        JSON.parse(opt.payload).forEach(function (id) {
+          var s = { opened: 0, clicked: 0, unsub: 0 };
+          Object.keys(w.sends).forEach(function (t) { if (w.sends[t] !== id) return; if (w.opens[t]) s.opened++; if (w.clicks[t]) s.clicked++; if (w.unsub[t]) s.unsub++; });
+          out2[id] = s;
+        });
+        return res(200, out2);
+      }
+      return res(404, { error: 'not found' });
+    };
+    return w;
+  }
+
+  root.GasMock = { makeEnv: makeEnv, Spreadsheet: Spreadsheet };
+  if (typeof module !== 'undefined') module.exports = root.GasMock;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+var __u = new URLSearchParams(location.search).get("user") || "hirayama@k-create.co.jp";
+var __env = GasMock.makeEnv({}, { user: __u, owner: "hirayama@k-create.co.jp" });
+["SpreadsheetApp","PropertiesService","Session","Utilities","LockService","ContentService","Logger","UrlFetchApp","ScriptApp","GmailApp","MailApp","CalendarApp"].forEach(function (k) { window[k] = __env[k]; });
+window.HtmlService = {};
+</script>
+<script>// タスク管理（社内のみ公開）— ダッシュボード
+// デプロイ: ウェブアプリ / 実行ユーザー=ウェブアプリにアクセスしているユーザー / アクセス=ドメイン内のユーザー
+//   → カレンダーと Gmail の新着は「開いた本人」のものが出る（本人の権限で読むだけ・書き込みはしない）
+// データはスプレッドシート（tasks / assignments / comments / members / links / admins / settings）
+
+var TZ = 'Asia/Tokyo';
+var SHEET_ID = ''; // 本番の親スプレッドシートID（setup() で作ると Script Properties に入る）
+var ADMIN_EMAIL = 'hirayama@k-create.co.jp'; // 最初の管理者（admins シートに1人もいないときに入れる）
+var CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
+var TASK_HEAD = ['id', 'title', 'body', 'due', 'due_time', 'minutes', 'link', 'creator', 'created', 'scope', 'status', 'done_at', 'updated', 'kind', 'important'];
+// kind: self（個人）/ team（チーム＝選んだ相手）/ all（全社＝名前登録済みの全員）。important=1 は重要（色はピンクが優先）
+// scope: self（自分用）/ share（社内メンバーに共有）。status: open / done / deleted。due は yyyy-MM-dd の文字・due_time は HH:mm の文字（空でも可）
+var ASSIGN_HEAD = ['task_id', 'email', 'status', 'done_at', 'assigned_at', 'seen_at', 'remind_at', 'remind_seen']; // 共有タスクの担当者ごとの状態。status: open / done。remind_at=発信者がリマインドを押した日時・remind_seen=本人が「確認した」日時
+var COMMENT_HEAD = ['id', 'task_id', 'email', 'body', 'created', 'unread']; // unread = まだ読んでいない人のメール（, 区切り）
+var MEMBER_HEAD = ['email', 'name', 'title'];
+var LINK_HEAD = ['label', 'url', 'order'];
+var KINDS = ['self', 'team', 'all'];
+var KIND_COLOR = { self: 'yellow', team: 'green', all: 'blue' }; // 個人=黄・チーム=黄緑・全社=水色。重要=ピンク
+var MAIL_MAX = 8;     // 新着メールの表示件数
+var BOARD_DAYS = 365; // 期限なしのタスクの並び順用（期限なしは最後）
+var DEFAULT_LINKS = [ // リンク集の初期値（オーナー指定の順・2026-10-31）。QR管理・一斉DM は本番 URL（サンプル版を作るときは build-demo.js がサンプル版の URL に置き換える）
+  ['QR管理', 'https://hirayama-byte.github.io/kcreate-qr-sample/', 1],
+  ['見積作成', 'https://script.google.com/a/macros/k-create.co.jp/s/AKfycbyR5vFkZm9bwKSyN2lZvcZcUUim_p-zxiiIx22jHiU8TRB81ZxAtyjvB6dtFjg-_GxH/exec', 2],
+  ['一斉DM', 'https://hirayama-byte.github.io/kcreate-dm-sample/', 3],
+  ['配布MAP', 'https://hirayama-byte.github.io/kureyon-haifu-area/map.html#area=ichinomiya', 4],
+  ['都度入力', 'https://drive.google.com/drive/folders/1xXrLb4UUchxrFFeSSCMYwgvOeK3gnVcF', 5],
+  ['社内ファイル', 'https://hirayama-byte.github.io/are-doko-Public/', 6],
+  ['営業リスト', 'https://drive.google.com/drive/folders/1bjLNkwZkLJiH4n2KEbp44cFKPD2lahjD', 7],
+  ['個人組立', 'https://drive.google.com/drive/folders/143yiD0VvbwAT1Y8P_D9leY1vC45iPB8z', 8],
+  ['管理表', 'https://drive.google.com/drive/folders/1YoF1dmyjjA3O7a2sFe1EZfC9j9eCiYr5', 9]
+];
+var DEFAULT_SETTINGS = [
+  ['company', '株式会社 ケイ・クリエイト'],
+  ['remind_minutes', '5'],   // 画面を開いている間、何分ごとに確認してポップアップするか
+  ['cal_from', '8'], ['cal_to', '20'] // 本日のスケジュールの表示時間帯
+];
+var DATE_COLS = { tasks: [4, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
+
+function doGet(e) {
+  return HtmlService.createTemplateFromFile('index').evaluate()
+    .setTitle('タスク管理')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// ---------- 初期設定（エディタから1回だけ実行） ----------
+function setup() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('SHEET_ID') || SHEET_ID;
+  var ss = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.create('タスク管理データ');
+  var tasks = ensureSheet_(ss, 'tasks', TASK_HEAD);
+  if (tasks.getLastColumn() < TASK_HEAD.length) tasks.getRange(1, 1, 1, TASK_HEAD.length).setValues([TASK_HEAD]);
+  var asg = ensureSheet_(ss, 'assignments', ASSIGN_HEAD);
+  if (asg.getLastColumn() < ASSIGN_HEAD.length) asg.getRange(1, 1, 1, ASSIGN_HEAD.length).setValues([ASSIGN_HEAD]); // あとから足した列（remind_at, remind_seen）
+  ensureSheet_(ss, 'comments', COMMENT_HEAD);
+  var mem = ensureSheet_(ss, 'members', MEMBER_HEAD);
+  if (mem.getLastColumn() < MEMBER_HEAD.length) mem.getRange(1, 1, 1, MEMBER_HEAD.length).setValues([MEMBER_HEAD]);
+  var links = ensureSheet_(ss, 'links', LINK_HEAD);
+  if (links.getLastRow() < 2) links.getRange(2, 1, DEFAULT_LINKS.length, 3).setValues(DEFAULT_LINKS);
+  var admins = ensureSheet_(ss, 'admins', ['email']);
+  if (admins.getLastRow() < 2) admins.appendRow([ADMIN_EMAIL || Session.getEffectiveUser().getEmail()]);
+  var st = ensureSheet_(ss, 'settings', ['key', 'value']);
+  if (st.getLastRow() < 2) st.getRange(2, 1, DEFAULT_SETTINGS.length, 2).setValues(DEFAULT_SETTINGS);
+  Object.keys(DATE_COLS).forEach(function (name) { // 日時の列は文字のまま（表示形式 @）
+    var sh = ss.getSheetByName(name);
+    DATE_COLS[name].forEach(function (c) { sh.getRange(1, c, Math.max(sh.getMaxRows(), 1), 1).setNumberFormat('@'); });
+  });
+  if (ss.setSpreadsheetTimeZone) ss.setSpreadsheetTimeZone(TZ);
+  var def = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
+  if (def && ss.getSheets().length > 1) ss.deleteSheet(def);
+  props.setProperty('SHEET_ID', ss.getId());
+  memo_ = {};
+  Logger.log('SHEET_ID = ' + ss.getId());
+  Logger.log(ss.getUrl());
+}
+function ensureSheet_(ss, name, head) {
+  var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+  if (sh.getLastRow() < 1) sh.getRange(1, 1, 1, head.length).setValues([head]);
+  return sh;
+}
+
+// ---------- 共通 ----------
+function ss_() { return SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID') || SHEET_ID); }
+function sheet_(name) { return ss_().getSheetByName(name); }
+function myEmail_() { return String(Session.getActiveUser().getEmail() || '').toLowerCase(); }
+function nowDate_() { return new Date(); }
+function now_() { return Utilities.formatDate(nowDate_(), TZ, 'yyyy-MM-dd HH:mm'); }
+function today_() { return Utilities.formatDate(nowDate_(), TZ, 'yyyy-MM-dd'); }
+function str_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm') : String(v == null ? '' : v); }
+function ymdOf_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v == null ? '' : v).slice(0, 10); }
+var memo_ = {};
+function bust_(name) { delete memo_[name]; }
+function rows_(name) {
+  if (memo_[name]) return memo_[name];
+  var sh = sheet_(name);
+  var n = sh.getLastRow();
+  memo_[name] = n < 2 ? [] : sh.getRange(2, 1, n - 1, sh.getLastColumn()).getValues();
+  return memo_[name];
+}
+function settings_() { var o = {}; rows_('settings').forEach(function (r) { o[String(r[0])] = String(r[1]); }); return o; }
+function isAdmin_(email) { return rows_('admins').some(function (r) { return String(r[0]).toLowerCase() === email; }); }
+function member_(email) {
+  var r = rows_('members').filter(function (x) { return String(x[0]).toLowerCase() === email; })[0];
+  return { email: email, name: r ? String(r[1]) : '', title: r ? String(r[2] || '') : '' };
+}
+function nameOf_(email) { var m = member_(String(email || '').toLowerCase()); return m.name || String(email || '').split('@')[0]; }
+function membersList_() {
+  return rows_('members').map(function (r) { return { email: String(r[0]).toLowerCase(), name: String(r[1]), title: String(r[2] || '') }; }).filter(function (m) { return m.name; });
+}
+function checkMember_(email) { if (!member_(email).name) throw new Error('先に自分の名前を登録してください（左下の「名前を登録」）'); }
+function newId_(prefix) {
+  var s = prefix + nowDate_().getTime().toString(36);
+  for (var i = 0; i < 4; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return s;
+}
+function isEmail_(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+function isUrl_(s) { return /^https?:\/\/\S+$/i.test(s); }
+function ymdOk_(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s); }
+function hmOk_(s) { return /^\d{2}:\d{2}$/.test(s); }
+// 所要時間は「分」の数字で保存。'1.5h'・'1時間30分'・'30分' のような書き方も分に直す
+function minutes_(v) {
+  var s = String(v == null ? '' : v).trim().replace(/[０-９．]/g, function (ch) { return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); });
+  if (!s) return '';
+  var m = /^(\d+(?:\.\d+)?)\s*(h|時間)\s*(?:(\d+)\s*(?:m|分))?$/i.exec(s);
+  if (m) return String(Math.round(Number(m[1]) * 60 + Number(m[3] || 0)));
+  var m2 = /^(\d+(?:\.\d+)?)\s*(m|分|min)?$/i.exec(s);
+  if (m2) return String(Math.round(Number(m2[1])));
+  throw new Error('所要時間は分の数字で入力してください（例: 30）');
+}
+function kindOf_(k) { return KINDS.indexOf(String(k || '')) >= 0 ? String(k) : 'self'; }
+function colorFor_(kind, important) { return important ? 'pink' : KIND_COLOR[kindOf_(kind)]; }
+function findRow_(name, col, value) { // 1列目基準で行番号（1始まり）を返す。無ければ 0
+  var rows = rows_(name);
+  for (var i = 0; i < rows.length; i++) if (String(rows[i][col]) === value) return i + 2;
+  return 0;
+}
+
+// ---------- 画面から呼ぶ: 起動 ----------
+function init() {
+  var email = myEmail_();
+  if (!email) throw new Error('ログイン情報が取得できません。会社のGoogleアカウントで開いてください');
+  if (!ss_().getSheetByName('tasks')) setup();
+  var me = member_(email);
+  me.isAdmin = isAdmin_(email);
+  var s = settings_();
+  return {
+    me: me,
+    members: membersList_(),
+    links: links_(),
+    settings: { company: s.company || '', remind_minutes: Number(s.remind_minutes || 5), cal_from: Number(s.cal_from || 8), cal_to: Number(s.cal_to || 20) },
+    kinds: KINDS,
+    today: today_(),
+    board: me.name ? board_(email) : [],
+    sent: me.name ? sent_(email) : [],
+    reminders: me.name ? myReminders_(email) : []
+  };
+}
+function links_() {
+  return rows_('links').map(function (r) { return { label: String(r[0]), url: String(r[1]), order: Number(r[2] || 0) }; })
+    .filter(function (l) { return l.label && l.url; }).sort(function (a, b) { return a.order - b.order; });
+}
+
+function setMyProfile(p) { return saveProfile_(myEmail_(), p); }
+function getMemberProfile(email) {
+  if (!isAdmin_(myEmail_())) throw new Error('他の人の設定は管理者だけが見られます');
+  email = String(email || '').trim().toLowerCase();
+  if (!isEmail_(email)) throw new Error('メールアドレスの形が正しくありません');
+  return member_(email);
+}
+function setMemberProfile(email, p) {
+  if (!isAdmin_(myEmail_())) throw new Error('他の人の設定は管理者だけが変えられます');
+  email = String(email || '').trim().toLowerCase();
+  if (!isEmail_(email)) throw new Error('メールアドレスの形が正しくありません');
+  return saveProfile_(email, p);
+}
+function saveProfile_(email, p) {
+  var name = String(p.name || '').trim();
+  if (!name) throw new Error('名前を入力してください');
+  var cur = member_(email);
+  var vals = [email, name, p.title === undefined ? cur.title : String(p.title || '').trim()];
+  var sh = sheet_('members'), row = findRow_('members', 0, email) || findRow_('members', 0, email.toLowerCase());
+  var rows = rows_('members');
+  for (var i = 0; i < rows.length; i++) if (String(rows[i][0]).toLowerCase() === email) { row = i + 2; break; }
+  if (row) sh.getRange(row, 1, 1, vals.length).setValues([vals]); else sh.appendRow(vals);
+  bust_('members');
+  return member_(email);
+}
+
+function setLinks(list) {
+  if (!isAdmin_(myEmail_())) throw new Error('リンク集は管理者だけが変えられます');
+  var vals = (list || []).map(function (l, i) { return [String(l.label || '').trim(), String(l.url || '').trim(), i + 1]; })
+    .filter(function (r) { return r[0] && r[1]; });
+  vals.forEach(function (r) { if (!isUrl_(r[1])) throw new Error('URL の形が正しくありません: ' + r[1]); });
+  var sh = sheet_('links');
+  var n = sh.getLastRow();
+  if (n > 1) sh.getRange(2, 1, n - 1, LINK_HEAD.length).clearContent();
+  if (vals.length) sh.getRange(2, 1, vals.length, 3).setValues(vals);
+  bust_('links');
+  return links_();
+}
+function setSettings(s) {
+  if (!isAdmin_(myEmail_())) throw new Error('設定は管理者だけが変えられます');
+  var sh = sheet_('settings'), rows = rows_('settings');
+  ['company', 'remind_minutes', 'cal_from', 'cal_to'].forEach(function (k) {
+    if (s[k] === undefined) return;
+    var v = String(s[k]).trim();
+    for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === k) { sh.getRange(i + 2, 2).setValue(v); return; }
+    sh.appendRow([k, v]);
+  });
+  bust_('settings');
+  return settings_();
+}
+
+// ---------- タスク ----------
+function taskObj_(r) {
+  return { id: String(r[0]), title: String(r[1]), body: String(r[2] || ''), due: ymdOf_(r[3]), dueTime: String(r[4] || ''), minutes: String(r[5] || ''), link: String(r[6] || ''),
+           creator: String(r[7]).toLowerCase(), created: str_(r[8]), scope: String(r[9]) || 'self', status: String(r[10]) || 'open', doneAt: str_(r[11]), updated: str_(r[12]), kind: kindOf_(r[13]), important: String(r[14] || '') === '1', color: colorFor_(r[13], String(r[14] || '') === '1') };
+}
+function tasksMap_() {
+  var m = {};
+  rows_('tasks').forEach(function (r) { var t = taskObj_(r); if (t.status !== 'deleted') m[t.id] = t; });
+  return m;
+}
+function assignsOf_(taskId) {
+  return rows_('assignments').filter(function (r) { return String(r[0]) === taskId; })
+    .map(function (r) { return { email: String(r[1]).toLowerCase(), name: nameOf_(r[1]), status: String(r[2]) || 'open', doneAt: str_(r[3]), assignedAt: str_(r[4]), seenAt: str_(r[5]), remindAt: str_(r[6]), remindSeen: str_(r[7]) }; });
+}
+function unreadCount_(taskId, email) {
+  return rows_('comments').filter(function (r) { return String(r[1]) === taskId && (',' + String(r[5] || '') + ',').indexOf(',' + email + ',') >= 0; }).length;
+}
+function commentCount_(taskId) { return rows_('comments').filter(function (r) { return String(r[1]) === taskId; }).length; }
+function decorate_(t, email) {
+  var o = JSON.parse(JSON.stringify(t));
+  o.creatorName = nameOf_(t.creator);
+  o.isCreator = t.creator === email;
+  o.assignees = assignsOf_(t.id);
+  o.doneCount = o.assignees.filter(function (a) { return a.status === 'done'; }).length;
+  var mine = o.assignees.filter(function (a) { return a.email === email; })[0];
+  o.myStatus = mine ? mine.status : (t.scope === 'self' && o.isCreator ? t.status : '');
+  o.myDoneAt = mine ? mine.doneAt : t.doneAt;
+  o.unread = unreadCount_(t.id, email);
+  o.comments = commentCount_(t.id);
+  return o;
+}
+// 自分のボードに出すもの: 自分用で未完了 ＋ 自分が担当で未完了（共有）
+function board_(email) {
+  var tasks = tasksMap_(), out = [];
+  Object.keys(tasks).forEach(function (id) {
+    var t = tasks[id];
+    if (t.scope === 'self' && t.creator === email && t.status === 'open') out.push(decorate_(t, email));
+  });
+  rows_('assignments').forEach(function (r) {
+    if (String(r[1]).toLowerCase() !== email || String(r[2]) === 'done') return;
+    var t = tasks[String(r[0])]; if (!t || t.status === 'deleted') return;
+    out.push(decorate_(t, email));
+  });
+  return out.sort(boardOrder_);
+}
+function dueKey_(t) { return t.due ? t.due + ' ' + (t.dueTime || '23:59') : '9999-12-31 23:59'; }
+function boardOrder_(a, b) { // 期限が近い順（期限なしは最後・同じなら作成が古い順）
+  var ka = dueKey_(a), kb = dueKey_(b);
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.created < b.created ? -1 : a.created > b.created ? 1 : 0;
+}
+// 自分が発信した共有タスク（未完了のもの＝誰か1人でも未対応）
+function sent_(email) {
+  var tasks = tasksMap_(), out = [];
+  Object.keys(tasks).forEach(function (id) {
+    var t = tasks[id];
+    if (t.scope === 'share' && t.creator === email && t.status === 'open') out.push(decorate_(t, email));
+  });
+  return out.sort(boardOrder_);
+}
+function getBoard() { var email = myEmail_(); return { board: board_(email), sent: sent_(email), reminders: myReminders_(email), today: today_() }; }
+
+// ---------- リマインド（発信者が押したときだけ・未完了の担当者にポップアップ） ----------
+function sendReminder(id) {
+  var email = myEmail_();
+  var x = taskRow_(id), t = x.t;
+  if (t.creator !== email && !isAdmin_(email)) throw new Error('リマインドは発信した人だけが送れます');
+  if (t.scope !== 'share') throw new Error('自分用のタスクにはリマインドを送れません');
+  var sh = sheet_('assignments'), rows = rows_('assignments'), ts = now_(), names = [];
+  rows.forEach(function (r, i) {
+    if (String(r[0]) !== id || String(r[2]) === 'done') return;
+    sh.getRange(i + 2, 7, 1, 2).setValues([[ts, '']]);
+    names.push(nameOf_(r[1]));
+  });
+  if (!names.length) throw new Error('リマインドする相手がいません（全員が完了しています）');
+  bust_('assignments');
+  return { count: names.length, names: names, at: ts };
+}
+// 自分あての未確認リマインド（担当が未完了のものだけ）
+function myReminders_(email) {
+  var tasks = tasksMap_(), out = [];
+  rows_('assignments').forEach(function (r) {
+    if (String(r[1]).toLowerCase() !== email || String(r[2]) === 'done' || !String(r[6] || '') || String(r[7] || '')) return;
+    var t = tasks[String(r[0])]; if (!t || t.status === 'deleted') return;
+    out.push({ id: t.id, title: t.title, creatorName: nameOf_(t.creator), remindAt: str_(r[6]), due: t.due, dueTime: t.dueTime });
+  });
+  return out.sort(function (a, b) { return a.remindAt < b.remindAt ? 1 : a.remindAt > b.remindAt ? -1 : 0; });
+}
+function markRemindersSeen(ids) {
+  var email = myEmail_(), sh = sheet_('assignments'), rows = rows_('assignments'), ts = now_(), n = 0;
+  ids = (ids || []).map(String);
+  rows.forEach(function (r, i) {
+    if (String(r[1]).toLowerCase() !== email || ids.indexOf(String(r[0])) < 0 || !String(r[6] || '') || String(r[7] || '')) return;
+    sh.getRange(i + 2, 8).setValue(ts); n++;
+  });
+  if (n) bust_('assignments');
+  return { seen: n };
+}
+
+function createTask(p) {
+  var email = myEmail_(); checkMember_(email);
+  var title = String(p.title || '').trim();
+  if (!title) throw new Error('見出しを入力してください');
+  var due = String(p.due || '').trim(), dueTime = String(p.dueTime || '').trim();
+  if (due && !ymdOk_(due)) throw new Error('締切の日付の形が正しくありません');
+  if (dueTime && !hmOk_(dueTime)) throw new Error('締切の時刻の形が正しくありません');
+  if (!due) dueTime = '';
+  var link = String(p.link || '').trim();
+  if (link && !isUrl_(link)) throw new Error('リンクは http:// か https:// から始めてください');
+  var kind = kindOf_(p.kind || (p.scope === 'share' ? 'team' : 'self'));
+  var scope = kind === 'self' ? 'self' : 'share';
+  var to = [];
+  if (scope === 'share') {
+    var seen = {};
+    var excl = {}; (p.exclude || []).forEach(function (e) { excl[String(e || '').trim().toLowerCase()] = 1; }); // 全社のとき個別に外す人
+    var srcTo = kind === 'all' ? membersList_().map(function (m) { return m.email; }).filter(function (e) { return e !== email && !excl[e]; }) : (p.to || []);
+    srcTo.forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (isEmail_(e) && !seen[e]) { seen[e] = 1; to.push(e); } });
+    if (p.includeMe && !seen[email]) to.push(email);
+    if (!to.length) throw new Error(kind === 'all' ? '共有する相手がいません（全員を外しています）' : '共有する相手を選んでください');
+    var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
+    to.forEach(function (e) { if (!known[e]) throw new Error('名前が登録されていない人がいます: ' + e); });
+  }
+  var id = newId_('T'), ts = now_();
+  sheet_('tasks').appendRow([id, title, String(p.body || '').trim(), due, dueTime, minutes_(p.minutes), link, email, ts, scope, 'open', '', ts, kind, p.important ? '1' : '']);
+  bust_('tasks');
+  if (to.length) {
+    sheet_('assignments').getRange(sheet_('assignments').getLastRow() + 1, 1, to.length, ASSIGN_HEAD.length)
+      .setValues(to.map(function (e) { return [id, e, 'open', '', ts, '', '', '']; }));
+    bust_('assignments');
+  }
+  return decorate_(tasksMap_()[id], email);
+}
+
+function taskRow_(id) {
+  var row = findRow_('tasks', 0, id);
+  if (!row) throw new Error('そのタスクは見つかりません');
+  var t = taskObj_(rows_('tasks')[row - 2]);
+  if (t.status === 'deleted') throw new Error('そのタスクは削除されています');
+  return { row: row, t: t };
+}
+function canSee_(t, email) {
+  return t.creator === email || isAdmin_(email) || assignsOf_(t.id).some(function (a) { return a.email === email; });
+}
+
+function updateTask(id, p) {
+  var email = myEmail_();
+  var x = taskRow_(id), t = x.t;
+  if (t.creator !== email && !isAdmin_(email)) throw new Error('発信した人だけが変更できます');
+  var title = p.title === undefined ? t.title : String(p.title || '').trim();
+  if (!title) throw new Error('見出しを入力してください');
+  var due = p.due === undefined ? t.due : String(p.due || '').trim(), dueTime = p.dueTime === undefined ? t.dueTime : String(p.dueTime || '').trim();
+  if (due && !ymdOk_(due)) throw new Error('締切の日付の形が正しくありません');
+  if (dueTime && !hmOk_(dueTime)) throw new Error('締切の時刻の形が正しくありません');
+  if (!due) dueTime = '';
+  var link = p.link === undefined ? t.link : String(p.link || '').trim();
+  if (link && !isUrl_(link)) throw new Error('リンクは http:// か https:// から始めてください');
+  var vals = [title, p.body === undefined ? t.body : String(p.body || '').trim(), due, dueTime, p.minutes === undefined ? t.minutes : minutes_(p.minutes), link];
+  var sh = sheet_('tasks');
+  sh.getRange(x.row, 2, 1, vals.length).setValues([vals]);
+  sh.getRange(x.row, 13).setValue(now_());
+  if (p.important !== undefined) sh.getRange(x.row, 15).setValue(p.important ? '1' : '');
+  // 共有の相手を足す（外すのは担当者の行を消さず、未対応のまま残さないよう done 扱いにはしない。足すだけ）
+  if (t.scope === 'share' && p.addTo && p.addTo.length) {
+    var cur = {}; assignsOf_(id).forEach(function (a) { cur[a.email] = 1; });
+    var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
+    var add = [], ts = now_();
+    p.addTo.forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (known[e] && !cur[e]) { cur[e] = 1; add.push([id, e, 'open', '', ts, '', '', '']); } });
+    if (add.length) { sheet_('assignments').getRange(sheet_('assignments').getLastRow() + 1, 1, add.length, ASSIGN_HEAD.length).setValues(add); bust_('assignments'); sh.getRange(x.row, 11).setValue('open'); }
+  }
+  bust_('tasks');
+  return decorate_(tasksMap_()[id], email);
+}
+
+function deleteTask(id) {
+  var email = myEmail_();
+  var x = taskRow_(id);
+  if (x.t.creator !== email && !isAdmin_(email)) throw new Error('発信した人だけが削除できます');
+  sheet_('tasks').getRange(x.row, 11).setValue('deleted');
+  sheet_('tasks').getRange(x.row, 13).setValue(now_());
+  bust_('tasks');
+  return { ok: true };
+}
+
+// 完了: 共有タスクは自分の分だけ完了（全員が完了したらタスクも完了）。自分用はタスクを完了
+function completeTask(id) { return setDone_(id, true); }
+function reopenTask(id) { return setDone_(id, false); }
+function setDone_(id, done) {
+  var email = myEmail_();
+  var x = taskRow_(id), t = x.t, ts = now_();
+  var ash = sheet_('assignments'), arows = rows_('assignments'), mine = 0;
+  for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email) { mine = i + 2; break; }
+  if (mine) {
+    ash.getRange(mine, 3, 1, 2).setValues([[done ? 'done' : 'open', done ? ts : '']]);
+    bust_('assignments');
+    var all = assignsOf_(id);
+    var allDone = all.length && all.every(function (a) { return a.status === 'done'; });
+    sheet_('tasks').getRange(x.row, 11, 1, 2).setValues([[allDone ? 'done' : 'open', allDone ? ts : '']]);
+  } else if (t.scope === 'self' && t.creator === email) {
+    sheet_('tasks').getRange(x.row, 11, 1, 2).setValues([[done ? 'done' : 'open', done ? ts : '']]);
+  } else if (t.creator === email || isAdmin_(email)) {
+    throw new Error('このタスクはあなたの担当ではありません（担当者が完了すると消えます）');
+  } else {
+    throw new Error('このタスクはあなたの担当ではありません');
+  }
+  sheet_('tasks').getRange(x.row, 13).setValue(ts);
+  bust_('tasks');
+  return decorate_(tasksMap_()[id], email);
+}
+
+// 完了したタスク（自分が完了したもの・新しい順）。month='yyyy-MM' で絞れる
+function listDone(month) {
+  var email = myEmail_(), tasks = tasksMap_(), out = [], seen = {};
+  rows_('assignments').forEach(function (r) {
+    if (String(r[1]).toLowerCase() !== email || String(r[2]) !== 'done') return;
+    var t = tasks[String(r[0])]; if (!t) return;
+    var o = decorate_(t, email); o.kind = 'assigned'; o.finished = str_(r[3]); out.push(o); seen[t.id] = 1;
+  });
+  Object.keys(tasks).forEach(function (id) {
+    var t = tasks[id];
+    if (seen[id] || t.creator !== email || t.status !== 'done') return;
+    var o = decorate_(t, email); o.kind = t.scope === 'self' ? 'self' : 'sent'; o.finished = t.doneAt; out.push(o);
+  });
+  if (month) out = out.filter(function (o) { return String(o.finished).slice(0, 7) === month; });
+  return out.sort(function (a, b) { return a.finished < b.finished ? 1 : a.finished > b.finished ? -1 : 0; });
+}
+
+// 詳細（本文・担当者の状態・コメント）。開いたら自分あての未読を既読に
+function getTask(id) {
+  var email = myEmail_();
+  var x = taskRow_(id), t = x.t;
+  if (!canSee_(t, email)) throw new Error('このタスクを見る権限がありません');
+  var ash = sheet_('assignments'), arows = rows_('assignments');
+  for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email && !String(arows[i][5] || '')) { ash.getRange(i + 2, 6).setValue(now_()); bust_('assignments'); break; }
+  var csh = sheet_('comments'), crows = rows_('comments'), changed = false, comments = [];
+  crows.forEach(function (r, i) {
+    if (String(r[1]) !== id) return;
+    var unread = String(r[5] || '').split(',').filter(String);
+    var wasUnread = unread.indexOf(email) >= 0;
+    if (wasUnread) { unread = unread.filter(function (e) { return e !== email; }); csh.getRange(i + 2, 6).setValue(unread.join(',')); changed = true; }
+    comments.push({ id: String(r[0]), email: String(r[2]).toLowerCase(), name: nameOf_(r[2]), body: String(r[3]), created: str_(r[4]), mine: String(r[2]).toLowerCase() === email, wasUnread: wasUnread });
+  });
+  if (changed) bust_('comments');
+  var o = decorate_(t, email);
+  o.comments = comments; o.unread = 0;
+  return o;
+}
+
+// 質問・返事: タスクの関係者（発信者＋担当者）のうち、書いた人以外が未読になる
+function addComment(id, body) {
+  var email = myEmail_(); checkMember_(email);
+  body = String(body || '').trim();
+  if (!body) throw new Error('内容を入力してください');
+  var x = taskRow_(id), t = x.t;
+  if (!canSee_(t, email)) throw new Error('このタスクに書き込む権限がありません');
+  var people = {}; people[t.creator] = 1; assignsOf_(id).forEach(function (a) { people[a.email] = 1; });
+  delete people[email];
+  sheet_('comments').appendRow([newId_('C'), id, email, body, now_(), Object.keys(people).join(',')]);
+  bust_('comments');
+  return getTask(id);
+}
+
+// ---------- 本日のスケジュール（開いた本人のカレンダー） ----------
+function getCalendar(ymd) {
+  ymd = ymdOk_(String(ymd || '')) ? String(ymd) : today_();
+  var d = new Date(ymd + 'T00:00:00+09:00');
+  var cal = CalendarApp.getDefaultCalendar();
+  var events = cal ? cal.getEventsForDay(d) : [];
+  return { date: ymd, events: events.map(function (ev) {
+    var allDay = ev.isAllDayEvent();
+    return { id: ev.getId(), title: ev.getTitle() || '（タイトルなし）', allDay: allDay,
+             start: allDay ? '' : Utilities.formatDate(ev.getStartTime(), TZ, 'HH:mm'), end: allDay ? '' : Utilities.formatDate(ev.getEndTime(), TZ, 'HH:mm'),
+             startYmd: Utilities.formatDate(ev.getStartTime(), TZ, 'yyyy-MM-dd'), endYmd: Utilities.formatDate(ev.getEndTime(), TZ, 'yyyy-MM-dd'),
+             location: ev.getLocation() || '' };
+  }) };
+}
+
+// ---------- 新着メール（開いた本人の受信トレイの未読） ----------
+function getMail() {
+  var threads = GmailApp.search('is:unread in:inbox', 0, MAIL_MAX);
+  var list = threads.map(function (th) {
+    var msgs = th.getMessages(), m = msgs[msgs.length - 1];
+    var from = String(m.getFrom() || '');
+    var fm = /^"?([^"<]*)"?\s*<([^>]+)>/.exec(from);
+    var snippet = String(m.getPlainBody() || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    return { id: th.getId(), from: fm ? fm[1].trim() || fm[2] : from, fromEmail: fm ? fm[2] : from, subject: th.getFirstMessageSubject() || '（件名なし）',
+             date: Utilities.formatDate(m.getDate(), TZ, 'yyyy-MM-dd HH:mm'), snippet: snippet, count: msgs.length };
+  });
+  return { unread: GmailApp.getInboxUnreadCount(), list: list, fetched: now_() };
+}
+</script>
+<script>// サンプルデータ（架空・8人・タスク 約20件・カレンダー・未読メール）と google.script.run のモック
+(function () {
+  var me = __env.user;
+  var H = 'hirayama@k-create.co.jp', S = 'sato@k-create.co.jp', K = 'kato@k-create.co.jp';
+  __env.user = H;
+  setup();
+  var members = [[H, '平山 竜也', '営業部'], [S, '佐藤 花子', '営業部'], ['suzuki@k-create.co.jp', '鈴木 一郎', '営業部'], ['tanaka@k-create.co.jp', '田中 美咲', '制作部'],
+                 ['ito@k-create.co.jp', '伊藤 健太', '営業部'], [K, '加藤 健', '営業部'], ['yamada@k-create.co.jp', '山田 由美', '総務部'], ['ogawa@k-create.co.jp', '小川 翔太', '制作部']];
+  members.forEach(function (m) { __env.user = m[0]; setMyProfile({ name: m[1], title: m[2] }); });
+  __env.user = H;
+  function ymd(off) { var d = new Date(Date.now() + off * 86400000 + 9 * 3600000); return d.toISOString().slice(0, 10); }
+  function at(email, fn) { __env.user = email; var r = fn(); __env.user = H; return r; }
+  var RealDate = Date;
+
+  // 平山の自分用
+  var t = {};
+  t.a = createTask({ title: '11月号 原稿締切の最終確認', body: '各営業の入稿状況を管理表でチェック。未入稿は本人に連絡', due: ymd(-1), dueTime: '17:00', minutes: '60', link: 'https://drive.google.com/drive/folders/1YoF1dmyjjA3O7a2sFe1EZfC9j9eCiYr5', important: true });
+  t.h = createTask({ title: '週次バックアップの確認', body: 'backup.log に OK が出ているか（毎週金曜 17:30 の自動実行）', due: ymd(0), dueTime: '17:30', minutes: '10' });
+  t.i = createTask({ title: '一宮西病院 折込チラシ 校了', body: '第4回の原稿を先生に確認してもらい、校了をもらう', due: ymd(2), minutes: '45', important: true });
+  t.j = createTask({ title: '社内スタッフ名簿の更新', body: '入退社の反映 → 見積作成の ?setup=staff を再実行', due: ymd(6), minutes: '20' });
+  t.b = createTask({ title: 'ウィズダム様 見積送付', body: '一宮版・江南版 1P×12回。見積作成サイトで作って PDF をメール', due: ymd(0), dueTime: '15:00', minutes: '30' });
+  t.c = createTask({ title: '一宮西病院 ラジオ原稿まとめ（第4回）', body: '粗い文字起こしを受け取ったら整形→Word化', due: ymd(1), minutes: '120' });
+  t.d = createTask({ title: 'くれよん12月号 企画会議の資料', body: '年末年始特集の候補店リストを作る', due: ymd(3), minutes: '90' });
+  t.e = createTask({ title: 'QR管理 持ち主の分散を相談', body: '会社の共有アカウントを Google・Cloudflare の共同管理者に', due: ymd(7) });
+  t.f = createTask({ title: '名刺の発注', body: '残り20枚。印刷会社に50枚', due: '', minutes: '5' });
+  t.g = createTask({ title: '尾州物流 求人特設サイト 確認待ち', body: 'QR画像と人物の肩書き・名前の確認待ち', due: ymd(2), link: 'https://hirayama-byte.github.io/' });
+  // 平山 → 複数人に共有
+  t.s1 = createTask({ title: '11月号 入稿確認', body: '担当クライアントの入稿を 11/2（月）までに確認して、管理表に○を付けてください', due: ymd(2), dueTime: '18:00', minutes: '30', link: 'https://drive.google.com/drive/folders/1YoF1dmyjjA3O7a2sFe1EZfC9j9eCiYr5', scope: 'share', to: [S, K, 'ito@k-create.co.jp', 'suzuki@k-create.co.jp'], important: true });
+  t.s2 = createTask({ title: '一斉DM 自動送信をオンにする', body: '署名・設定 → 自動送信をオン（1回だけ）。すでにオンの人はそのままで OK', due: ymd(1), minutes: '5', kind: 'all' });
+  t.s3 = createTask({ title: '12月号 年末年始特集の候補店を3件ずつ', body: '担当エリアから候補店を3件。会社名・ジャンル・ひとこと', due: ymd(5), minutes: '60', scope: 'share', to: [S, K, 'tanaka@k-create.co.jp'], includeMe: true });
+  t.s4 = createTask({ title: '展示会で集めた名刺を宛先リストへ', body: '共有シートに入力 → 一斉DMで「最新リストを読込」', due: ymd(-2), scope: 'share', to: [S, K] });
+  // 佐藤 → 平山
+  t.r1 = at(S, function () { return createTask({ title: '一宮版 11月号 色校正の確認', body: 'ラーメン一番さんの広告、赤が強いので一度見てください', due: ymd(0), dueTime: '12:00', minutes: '15', scope: 'share', to: [H] }); });
+  t.r2 = at(S, function () { return createTask({ title: 'くれよん 江南版 配布エリアの相談', body: '新規のクライアントが扶桑町も入れたいとのこと。追加費用の目安を教えてください', due: ymd(1), scope: 'share', to: [H, 'tanaka@k-create.co.jp'] }); });
+  t.r3 = at('tanaka@k-create.co.jp', function () { return createTask({ title: '12月号 表紙デザイン案の確認', body: '3案あります。Drive の「12月号/表紙」を見てコメントください', due: ymd(4), minutes: '20', link: 'https://drive.google.com/', scope: 'share', to: [H, S] }); });
+  t.r4 = at('yamada@k-create.co.jp', function () { return createTask({ title: '年末調整の書類提出', body: '総務の山田です。年末調整の申告書を 11/10 までに提出してください。用紙は総務の棚にあります', due: ymd(10), minutes: '15', kind: 'all' }); });
+  t.r5 = at(K, function () { return createTask({ title: '一宮建設 求人原稿の確認', body: '原稿データが届きました。文字校正をお願いします', due: ymd(3), minutes: '20', link: 'https://drive.google.com/', scope: 'share', to: [H, S] }); });
+  // 佐藤の自分用
+  at(S, function () { createTask({ title: 'ヘアサロンmoon 訪問', body: '来月の掲載プラン提案', due: ymd(0), dueTime: '14:00', minutes: '60' }); createTask({ title: '請求書の発行（10月分）', due: ymd(3) }); });
+  // 完了しているもの
+  var old1 = createTask({ title: '10月号 入稿完了報告', body: 'サイボウズに校了報告', due: ymd(-10) }); completeTask(old1.id);
+  var old2 = createTask({ title: '見積作成サイト ゴミ箱から復元', due: ymd(-1) }); completeTask(old2.id);
+  var old3 = createTask({ title: '登録名をフルネームに統一', body: '名簿シート → QR / DM / 見積', scope: 'share', to: [S, K] });
+  at(S, function () { completeTask(old3.id); }); at(K, function () { completeTask(old3.id); });
+  // 進み具合いろいろ
+  at(S, function () { completeTask(t.s1.id); });
+  at('ito@k-create.co.jp', function () { completeTask(t.s2.id); }); at('yamada@k-create.co.jp', function () { completeTask(t.s2.id); }); at(S, function () { getTask(t.s2.id); });
+  at(K, function () { completeTask(t.s4.id); });
+  // 質問・返事
+  at(K, function () { addComment(t.s1.id, '加藤です。しげん屋さんの入稿がまだです。締切を11/4まで延ばせますか？'); });
+  at(S, function () { addComment(t.s3.id, '候補店は飲食だけで良いですか？'); });
+  at(S, function () { getTask(t.r1.id); addComment(t.r1.id, '色校正は本日中にお願いします'); sendReminder(t.r1.id); });
+  at(H, function () { getTask(t.s4.id); addComment(t.s4.id, '名刺は30枚くらいです。シートの「展示会」タグで分かるようにしてください'); });
+
+  // カレンダー（人ごと）
+  function ev(id, title, day, s, e, opt) { var o = { id: id, title: title, start: new RealDate(ymd(day) + 'T' + s + ':00+09:00'), end: new RealDate(ymd(day) + 'T' + e + ':00+09:00') }; if (opt) for (var k in opt) o[k] = opt[k]; return o; }
+  __env.calendar[H] = [
+    ev('c1', '平山 時間休', 0, '09:00', '10:00'),
+    ev('c2', '【16時】遠藤さん打合せ', 0, '16:00', '17:00', { location: 'ケイ・クリエイト 会議室' }),
+    ev('c3', '一宮西病院 原稿打合せ', 0, '13:30', '14:30'),
+    { id: 'c4', title: '11月号 原稿締切 週', start: new RealDate(ymd(0) + 'T00:00:00+09:00'), end: new RealDate(ymd(1) + 'T00:00:00+09:00'), allDay: true },
+    ev('c5', '営業会議', 1, '10:00', '11:00'),
+    ev('c6', 'ウィズダム様 訪問', -1, '14:00', '15:00')
+  ];
+  __env.calendar[S] = [ev('s1', 'ヘアサロンmoon 訪問', 0, '14:00', '15:00'), ev('s2', '営業会議', 1, '10:00', '11:00')];
+  __env.calendar[K] = [ev('k1', '一宮建設 打合せ', 0, '11:00', '12:00')];
+  // 未読メール（人ごと）
+  function mail(id, from, subject, minutesAgo, body, unread) { return { id: id, from: from, subject: subject, date: new RealDate(Date.now() - minutesAgo * 60000), body: body, unread: unread !== false }; }
+  __env.inbox[H] = [
+    mail('m1', '"山田 太郎" <yamada@ramen-ichiban.example.jp>', '11月号の原稿について', 12, 'お世話になっております。ラーメン一番の山田です。原稿の件、2か所修正をお願いしたくご連絡しました。'),
+    mail('m2', '"中広 武" <take@chuco.example.jp>', '【共有】求人広告の事例（11月）', 48, 'お疲れ様です。先月の求人広告の事例を共有します。添付をご確認ください。'),
+    mail('m3', '"佐藤 花子" <sato@k-create.co.jp>', 'Re: 一宮版 色校正', 95, '平山さん、色校正のデータを Drive に入れました。確認お願いします。'),
+    mail('m4', 'noreply@google.com', 'Google Workspace: ストレージのお知らせ', 240, 'お客様のストレージ使用量が 80% に達しました。'),
+    mail('m5', '"英会話スクールABC" <info@abc-english.example.jp>', '掲載のお申し込み', 400, 'はじめまして。くれよんへの掲載を検討しております。料金表をいただけますか。'),
+    mail('m6', '"遠藤" <endo@example.jp>', '本日16時の打合せについて', 30, '本日はよろしくお願いします。会議室はそちらで大丈夫でしょうか。'),
+    mail('m7', 'old@example.jp', '既読のメール（表示されない）', 10, '', false),
+    mail('m8', '"一宮建設 総務部" <soumu@ichinomiya-kensetsu.example.jp>', '求人広告の原稿データ送付', 600, '先日お話しした求人広告の原稿データをお送りします。ご確認ください。'),
+    mail('m9', '"Google カレンダー" <calendar-notification@google.com>', '招待: 営業会議 11/1（土）', 700, '営業会議 に招待されています。')
+  ];
+  __env.inbox[S] = [mail('s1', '"ヘアサロンmoon" <moon@example.jp>', '来月の掲載について', 20, '14時にお待ちしています。'), mail('s2', '"平山 竜也" <hirayama@k-create.co.jp>', '11月号 入稿確認', 120, '各自、入稿確認をお願いします。')];
+  __env.user = me;
+
+  // google.script.run の代わり（少し待ってから返す）
+  function runner(ok, ng) {
+    return new Proxy({}, { get: function (_, k) {
+      if (k === 'withSuccessHandler') return function (f) { return runner(f, ng); };
+      if (k === 'withFailureHandler') return function (f) { return runner(ok, f); };
+      return function () {
+        var a = arguments;
+        setTimeout(function () {
+          try { var r = JSON.parse(JSON.stringify(window[k].apply(null, a))); ok && ok(r === undefined ? null : r); }
+          catch (e) { ng && ng(e); }
+        }, 150);
+      };
+    } });
+  }
+  window.google = { script: { run: runner() } };
+})();
+</script>
+<script id="app">
+var booted = false;
+var S = { me: null, members: [], links: [], settings: {}, kinds: [], today: '', board: [], sent: [], tab: 'dash', kind: 'self', to: {}, excl: {}, calDate: '', calCache: {}, mail: null, timer: null, reminders: [], remindOpen: false };
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function call(name) {
+  var args = [].slice.call(arguments, 1);
+  return new Promise(function (ok, ng) { var r = google.script.run.withSuccessHandler(ok).withFailureHandler(ng); r[name].apply(r, args); });
+}
+function toast(msg, err) { var t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, err ? 5000 : 2500); }
+function fail(e) { toast((e && e.message) || String(e), true); }
+function modal(html, onOpen) {
+  var bg = document.createElement('div'); bg.className = 'modal-bg'; bg.innerHTML = '<div class="modal">' + html + '</div>';
+  bg.addEventListener('click', function (e) { if (e.target === bg) bg.remove(); });
+  bg.querySelectorAll('[data-close]').forEach(function (b) { b.onclick = function () { bg.remove(); }; });
+  document.body.appendChild(bg); onOpen && onOpen(bg); return bg;
+}
+function initial(name) { return String(name || '?').replace(/\s/g, '').slice(0, 1) || '?'; }
+var WD = ['日', '月', '火', '水', '木', '金', '土'];
+function fmtYmd(s) { if (!s) return ''; var d = new Date(s + 'T00:00:00'); return (d.getMonth() + 1) + '/' + d.getDate() + '(' + WD[d.getDay()] + ')'; }
+function fmtDt(s) { return s ? String(s).slice(5, 16).replace('-', '/') : ''; }
+function dueClass(t) {
+  if (!t.due) return '';
+  if (t.due < S.today) return 'late';
+  if (t.due === S.today) return 'today';
+  var d = (new Date(t.due + 'T00:00:00') - new Date(S.today + 'T00:00:00')) / 86400000;
+  return d <= 3 ? 'soon' : '';
+}
+function dueLabel(t) { if (!t.due) return '期限なし'; return fmtYmd(t.due) + (t.dueTime ? ' ' + t.dueTime : ''); }
+function dueTag(t) { var c = dueClass(t); return '<span class="tag ' + (c || 'open') + '">' + (c === 'late' ? '期限超過' : c === 'today' ? '今日まで' : c === 'soon' ? 'まもなく' : t.due ? '予定' : '期限なし') + '</span>'; }
+function memberName(email) { var m = S.members.filter(function (x) { return x.email === email; })[0]; return m ? m.name : (email || '').split('@')[0]; }
+
+// ---------- タブ ----------
+var TITLES = { dash: 'ダッシュボード', sent: '発信したタスク', done: '完了したタスク', settings: '設定' };
+function show(tab) {
+  S.tab = tab;
+  ['dash', 'sent', 'done', 'settings'].forEach(function (t) { $(t).classList.toggle('hide', t !== tab); });
+  document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === tab); });
+  if (tab === 'sent') renderSent();
+  if (tab === 'done') loadDone();
+  if (tab === 'settings') renderSettings();
+}
+document.querySelectorAll('#tabs button').forEach(function (b) { b.onclick = function () { show(b.dataset.tab); }; });
+$('brand').onclick = function () { show('dash'); };
+
+// ---------- 起動 ----------
+function boot() {
+  call('init').then(function (r) {
+    S.me = r.me; S.members = r.members; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.today = r.today; S.board = r.board; S.sent = r.sent;
+    if (!S.calDate) S.calDate = r.today;
+    $('meMail').textContent = r.me.email;
+    if (r.me.name) { $('meName').textContent = r.me.name + (r.me.isAdmin ? '（管理者）' : ''); $('meAv').textContent = initial(r.me.name); }
+    else { $('meName').textContent = '名前を登録'; $('meAv').textContent = '?'; }
+    $('linksEdit').classList.toggle('hide', !r.me.isAdmin);
+    $('adminCard').classList.toggle('hide', !r.me.isAdmin);
+    renderLinks(); renderTo(); renderBoard(); updateBadges();
+    if (!r.me.name) nameModal(true);
+    if (!booted) { loadCal(); loadMail(); startTimer(); }
+    var first = !booted;
+    show(first ? 'dash' : S.tab); booted = true;
+    S.reminders = r.reminders || [];
+    if (r.me.name) showReminders(S.reminders);
+  }).catch(fail);
+}
+$('meBtn').onclick = function () { nameModal(false); };
+function nameModal(first) {
+  var m = S.me || {};
+  modal('<div class="mh"><h3>' + (first ? 'はじめに、名前を登録してください' : '名前の変更') + '</h3></div><div class="mb">' +
+    '<div class="field"><label>名前（フルネーム）</label><input id="mName" type="text" value="' + esc(m.name) + '"></div>' +
+    '<div class="field"><label>部署・役職（任意）</label><input id="mTitle" type="text" value="' + esc(m.title) + '"></div>' +
+    '<p class="hint">タスクの発信者・共有する相手の名前として表示されます</p></div>' +
+    '<div class="mf">' + (first ? '' : '<button class="btn" data-close>やめる</button>') + '<button class="btn primary" id="mSave">保存</button></div>', function (bg) {
+    bg.querySelector('#mName').focus();
+    bg.querySelector('#mSave').onclick = function () {
+      call('setMyProfile', { name: bg.querySelector('#mName').value, title: bg.querySelector('#mTitle').value })
+        .then(function (me) { me.isAdmin = S.me.isAdmin; S.me = me; bg.remove(); toast('保存しました'); boot(); }).catch(fail);
+    };
+  });
+}
+
+// ---------- リンク集 ----------
+function renderLinks() {
+  $('links').innerHTML = S.links.map(function (l) {
+    return '<a href="' + esc(l.url) + '" target="_blank" rel="noopener" title="' + esc(l.label) + ' を新しいタブで開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/></svg>' + esc(l.label) + '<span class="ext">↗</span></a>';
+  }).join('') || '<div class="hint" style="padding:0 12px">リンクはまだありません</div>';
+}
+$('linksEdit').onclick = function () {
+  var rows = S.links.length ? S.links : [{ label: '', url: '' }];
+  function rowHtml(l) { return '<div><input type="text" class="ll" placeholder="名前" value="' + esc(l.label) + '"><input type="url" class="lu" placeholder="https://" value="' + esc(l.url) + '"><button class="btn sm danger lx" title="この行を消す">×</button></div>'; }
+  modal('<div class="mh"><h3>リンク集の編集</h3></div><div class="mb"><p class="hint" style="margin:0 0 10px">上から順に左のメニューに並びます。空の行は保存時に外れます</p><div class="linkrows" id="lrows">' + rows.map(rowHtml).join('') + '</div><button class="btn sm" id="ladd">＋ 行を足す</button></div>' +
+    '<div class="mf"><button class="btn" data-close>やめる</button><button class="btn primary" id="lsave">保存</button></div>', function (bg) {
+    function bind() { bg.querySelectorAll('.lx').forEach(function (b) { b.onclick = function () { b.parentNode.remove(); }; }); }
+    bind();
+    bg.querySelector('#ladd').onclick = function () { bg.querySelector('#lrows').insertAdjacentHTML('beforeend', rowHtml({ label: '', url: '' })); bind(); };
+    bg.querySelector('#lsave').onclick = function () {
+      var list = [].map.call(bg.querySelectorAll('#lrows > div'), function (d) { return { label: d.querySelector('.ll').value, url: d.querySelector('.lu').value }; });
+      call('setLinks', list).then(function (r) { S.links = r; renderLinks(); bg.remove(); toast('リンク集を保存しました'); }).catch(fail);
+    };
+  });
+};
+
+// ---------- 付箋ボード ----------
+function noteHtml(t) {
+  var c = dueClass(t);
+  var who = t.isCreator ? (t.kind === 'all' ? '自分が全社に発信' : t.scope === 'share' ? '自分が発信' : '個人') : '発信: ' + esc(t.creatorName);
+  return '<div class="note ' + esc(t.color) + '" data-id="' + esc(t.id) + '">' +
+    '<div class="nt">' + esc(t.title) + '</div>' +
+    (t.body ? '<div class="nb">' + esc(t.body) + '</div>' : '') +
+    '<div class="meta"><span class="due ' + c + '" title="締切">' + '📅 ' + esc(dueLabel(t)) + (c === 'late' ? ' ⚠' : '') + '</span>' +
+    (t.minutes ? '<span class="mins' + (Number(t.minutes) <= 5 ? ' urgent' : '') + '" title="所要時間">⏱ ' + esc(t.minutes) + '分</span>' : '') + '</div>' +
+    '<div class="who"><span class="av">' + esc(initial(t.creatorName)) + '</span><span>' + who + '</span>' + (t.scope === 'share' && t.assignees.length > 1 ? '<span class="prog">' + t.doneCount + '/' + t.assignees.length + ' 完了</span>' : '') + '</div>' +
+    '<div class="foot"><button class="qbtn' + (t.comments ? ' has' : '') + '" data-q title="質問・返事' + (t.comments ? '（' + t.comments + ' 件）' : 'を書く') + '">💬' + (t.unread ? '<span class="ub">' + t.unread + '</span>' : '') + '</button>' +
+    (t.link ? '<a class="lbtn" href="' + esc(t.link) + '" target="_blank" rel="noopener" data-stop title="' + esc(t.link) + '">リンク🔗</a>' : '') +
+    (t.myStatus === 'open' ? '<button class="donebtn" data-done>✓ 完了</button>' : '<button class="donebtn sent" data-open>進み具合</button>') + '</div></div>';
+}
+function renderBoard() {
+  var b = $('board');
+  if (!S.board.length) { b.innerHTML = '<div class="empty">今のタスクはありません。右の「タスクの作成」から作れます</div>'; $('boardHint').textContent = ''; return; }
+  b.innerHTML = S.board.map(noteHtml).join('');
+  var late = S.board.filter(function (t) { return dueClass(t) === 'late'; }).length, today = S.board.filter(function (t) { return dueClass(t) === 'today'; }).length;
+  $('boardHint').textContent = S.board.length + ' 件' + (late ? '・超過 ' + late : '') + (today ? '・今日 ' + today : '');
+  b.querySelectorAll('.note').forEach(function (n) {
+    var id = n.dataset.id;
+    n.onclick = function (e) { if (e.target.closest('[data-stop]')) return; openTask(id); };
+    var d = n.querySelector('[data-done]'); if (d) d.onclick = function (e) { e.stopPropagation(); doComplete(id, n); };
+    n.querySelector('[data-q]').onclick = function (e) { e.stopPropagation(); openTask(id, true); };
+  });
+}
+function doComplete(id, el) {
+  if (el) el.style.opacity = .4;
+  call('completeTask', id).then(function (t) {
+    S.board = S.board.filter(function (x) { return x.id !== id; });
+    renderBoard(); updateBadges();
+    toast('完了しました' + (t.scope === 'share' && !t.isCreator ? '（' + t.creatorName + ' さんに伝わります）' : ''));
+  }).catch(function (e) { if (el) el.style.opacity = 1; fail(e); });
+}
+function reloadBoard() {
+  return call('getBoard').then(function (r) { S.board = r.board; S.sent = r.sent; S.today = r.today; S.reminders = r.reminders || []; renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent(); showReminders(S.reminders); });
+}
+$('boardReload').onclick = function () { reloadBoard().then(function () { toast('更新しました'); }).catch(fail); };
+$('doneBtn').onclick = function () { show('done'); };
+function updateBadges() {
+  var unread = S.board.reduce(function (n, t) { return n + (t.unread || 0); }, 0);
+  var sentUnread = S.sent.reduce(function (n, t) { return n + (t.unread || 0); }, 0);
+  $('bdgBoard').textContent = unread; $('bdgBoard').classList.toggle('hide', !unread);
+  $('bdgSent').textContent = sentUnread; $('bdgSent').classList.toggle('hide', !sentUnread);
+}
+
+// ---------- タスクの作成 ----------
+// チーム: チェックした人に共有（最初は誰もチェックなし）／全社: 全員にチェック済みで、外したい人だけチェックを外す
+function others() { return S.members.filter(function (m) { return !S.me || m.email !== S.me.email; }); }
+function isOn(e) { return S.kind === 'all' ? !S.excl[e] : !!S.to[e]; }
+function toCount() { return others().filter(function (m) { return isOn(m.email); }).length; }
+function renderTo() {
+  var list = others();
+  $('cToLabel').textContent = S.kind === 'all' ? '全社に共有（外す人はチェックを外す）' : '共有する相手';
+  $('cTo').innerHTML = list.map(function (m) { var on = isOn(m.email); return '<label class="' + (on || S.kind !== 'all' ? '' : 'off') + '" title="' + esc(m.name) + '"><input type="checkbox" data-e="' + esc(m.email) + '"' + (on ? ' checked' : '') + '>' + esc(m.name) + '</label>'; }).join('') || '<span class="hint">名前を登録したメンバーがまだいません</span>';
+  $('cTo').querySelectorAll('input[data-e]').forEach(function (c) { c.onchange = function () {
+    var e = c.dataset.e;
+    if (S.kind === 'all') { if (c.checked) delete S.excl[e]; else S.excl[e] = 1; c.parentNode.classList.toggle('off', !c.checked); }
+    else { if (c.checked) S.to[e] = 1; else delete S.to[e]; }
+    $('cToN').textContent = toCount();
+  }; });
+  $('cToN').textContent = toCount();
+}
+$('cAll').onclick = function () { if (S.kind === 'all') S.excl = {}; else others().forEach(function (m) { S.to[m.email] = 1; }); renderTo(); };
+$('cNone').onclick = function () { if (S.kind === 'all') others().forEach(function (m) { S.excl[m.email] = 1; }); else S.to = {}; renderTo(); };
+function setKind(k) { S.kind = k; $('cSelf').classList.toggle('on', k === 'self'); $('cTeam').classList.toggle('on', k === 'team'); $('cCompany').classList.toggle('on', k === 'all'); $('cToWrap').classList.toggle('hide', k === 'self'); renderTo(); }
+$('cSelf').onclick = function () { setKind('self'); }; $('cTeam').onclick = function () { setKind('team'); }; $('cCompany').onclick = function () { setKind('all'); };
+$('cSave').onclick = function () {
+  var p = { title: $('cTitle').value, body: $('cBody').value, due: $('cDue').value, dueTime: $('cDueTime').value, minutes: $('cMins').value, link: $('cLink').value, kind: S.kind, important: $('cImportant').checked, to: S.kind === 'team' ? Object.keys(S.to) : [], exclude: S.kind === 'all' ? Object.keys(S.excl) : [], includeMe: $('cMe').checked };
+  if (!p.title.trim()) { toast('見出しを入力してください', true); $('cTitle').focus(); return; }
+  if (p.kind !== 'self' && !toCount() && !p.includeMe) { toast(p.kind === 'all' ? '全員を外しています。共有する相手を残してください' : '共有する相手を選んでください', true); return; }
+  $('cSave').disabled = true;
+  call('createTask', p).then(function (t) {
+    $('cSave').disabled = false;
+    ['cTitle', 'cBody', 'cDue', 'cDueTime', 'cMins', 'cLink'].forEach(function (id) { $(id).value = ''; });
+    $('cMe').checked = false; $('cImportant').checked = false; S.to = {}; S.excl = {}; renderTo();
+    if (t.myStatus === 'open') { S.board.push(t); S.board.sort(boardOrder); renderBoard(); }
+    if (t.scope === 'share') { S.sent.push(t); S.sent.sort(boardOrder); }
+    toast(t.scope === 'share' ? t.assignees.length + ' 人に共有しました' : 'タスクを作りました');
+  }).catch(function (e) { $('cSave').disabled = false; fail(e); });
+};
+function dueKey(t) { return t.due ? t.due + ' ' + (t.dueTime || '23:59') : '9999-12-31 23:59'; }
+function boardOrder(a, b) { var ka = dueKey(a), kb = dueKey(b); if (ka !== kb) return ka < kb ? -1 : 1; return a.created < b.created ? -1 : a.created > b.created ? 1 : 0; }
+
+// ---------- 詳細・質問 ----------
+function openTask(id, focusAsk) {
+  var bg = modal('<div class="mh"><h3>読み込み中…</h3></div>');
+  call('getTask', id).then(function (t) {
+    bg.remove(); detailModal(t, focusAsk);
+    // 未読を消す
+    [S.board, S.sent].forEach(function (list) { list.forEach(function (x) { if (x.id === id) x.unread = 0; }); });
+    renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent();
+  }).catch(function (e) { bg.remove(); fail(e); });
+}
+function detailModal(t, focusAsk) {
+  var c = dueClass(t);
+  var people = t.scope === 'share' ? '<div class="people">' + t.assignees.map(function (a) {
+    return '<div><span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '">' + (a.status === 'done' ? '完了' : a.seenAt ? '確認済・未対応' : '未対応') + '</span><span>' + esc(a.name) + '</span><span class="t">' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' : (a.seenAt ? fmtDt(a.seenAt) + ' に開いた' : 'まだ開いていません') + (a.remindAt ? '・🔔 ' + fmtDt(a.remindAt) + (a.remindSeen ? ' 確認済' : ' 未確認') : '')) + '</span></div>';
+  }).join('') + '</div>' : '';
+  var html = '<div class="mh"><h3>' + esc(t.title) + '</h3><span class="sp"></span>' + dueTag(t) + '</div><div class="mb detail">' +
+    (t.body ? '<div class="body">' + esc(t.body) + '</div>' : '<p class="hint" style="margin:0">（内容なし）</p>') +
+    '<dl><dt>締切</dt><dd class="' + (c === 'late' ? 'mono' : '') + '" style="' + (c === 'late' ? 'color:var(--danger)' : '') + '">' + esc(dueLabel(t)) + '</dd>' +
+    '<dt>所要時間</dt><dd>' + (t.minutes ? esc(t.minutes) + ' 分' : '−') + '</dd>' +
+    '<dt>リンク</dt><dd>' + (t.link ? '<a href="' + esc(t.link) + '" target="_blank" rel="noopener" style="word-break:break-all">' + esc(t.link) + ' ↗</a>' : '−') + '</dd>' +
+    '<dt>発信者</dt><dd>' + esc(t.creatorName) + (t.isCreator ? '（自分）' : '') + ' <span class="hint">' + fmtDt(t.created) + '</span></dd>' +
+    '<dt>種類</dt><dd>' + (t.kind === 'all' ? '全社' : t.kind === 'team' ? 'チーム' : '個人') + (t.important ? '・重要' : '') + '</dd>' + (t.scope === 'share' ? '<dt>相手</dt><dd>' + people + '</dd>' : '') + '</dl>' +
+    '<h4 style="margin:14px 0 8px;font-size:13px">質問・返事</h4><div class="thread" id="thread">' + threadHtml(t.comments) + '</div>' +
+    '<div class="ask"><textarea id="askText" placeholder="' + (t.isCreator ? '返事や補足を書く（相手に届きます）' : '質問を書く（' + esc(t.creatorName) + ' さんに届きます）') + '"></textarea><button class="btn primary" id="askSend">送る</button></div></div>' +
+    '<div class="mf">' + (t.isCreator || (S.me && S.me.isAdmin) ? '<button class="btn danger" id="dDel">削除</button><button class="btn" id="dEdit">変更</button>' : '') + (t.isCreator && t.scope === 'share' && t.doneCount < t.assignees.length ? '<button class="btn" id="dRemind" title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + '<span class="sp"></span><button class="btn" data-close>閉じる</button>' +
+    (t.myStatus === 'open' ? '<button class="btn primary" id="dDone">✓ 完了にする</button>' : t.myStatus === 'done' ? '<button class="btn" id="dReopen">未完了に戻す</button>' : '') + '</div>';
+  var bg = modal(html, function (bg) {
+    var th = bg.querySelector('#thread'); th.scrollTop = th.scrollHeight;
+    if (focusAsk) bg.querySelector('#askText').focus();
+    bg.querySelector('#askSend').onclick = function () {
+      var v = bg.querySelector('#askText').value;
+      if (!v.trim()) { toast('内容を入力してください', true); return; }
+      call('addComment', t.id, v).then(function (r) { bg.querySelector('#askText').value = ''; th.innerHTML = threadHtml(r.comments); th.scrollTop = th.scrollHeight; [S.board, S.sent].forEach(function (list) { list.forEach(function (x) { if (x.id === t.id) x.comments = r.comments.length; }); }); renderBoard(); toast(t.isCreator ? '相手に送りました' : t.creatorName + ' さんに送りました'); }).catch(fail);
+    };
+    var d = bg.querySelector('#dDone'); if (d) d.onclick = function () { bg.remove(); doComplete(t.id); };
+    var r = bg.querySelector('#dReopen'); if (r) r.onclick = function () { call('reopenTask', t.id).then(function () { bg.remove(); toast('未完了に戻しました'); reloadBoard(); if (S.tab === 'done') loadDone(); }).catch(fail); };
+    var e = bg.querySelector('#dEdit'); if (e) e.onclick = function () { bg.remove(); editModal(t); };
+    var rm = bg.querySelector('#dRemind'); if (rm) rm.onclick = function () { bg.remove(); doRemind(t.id); };
+    var x = bg.querySelector('#dDel'); if (x) x.onclick = function () {
+      modal('<div class="mh"><h3>このタスクを削除しますか？</h3></div><div class="mb"><p style="margin:0">「' + esc(t.title) + '」' + (t.scope === 'share' ? 'は相手のボードからも消えます。' : 'を削除します。') + '</p></div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn danger" id="delYes">削除する</button></div>', function (b2) {
+        b2.querySelector('#delYes').onclick = function () { call('deleteTask', t.id).then(function () { b2.remove(); bg.remove(); S.board = S.board.filter(function (y) { return y.id !== t.id; }); S.sent = S.sent.filter(function (y) { return y.id !== t.id; }); renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent(); if (S.tab === 'done') loadDone(); toast('削除しました'); }).catch(fail); };
+      });
+    };
+  });
+}
+function threadHtml(list) {
+  if (!list || !list.length) return '<p class="hint" style="margin:0">まだ書き込みはありません</p>';
+  return list.map(function (c) { return '<div class="c' + (c.mine ? ' mine' : '') + (c.wasUnread ? ' new' : '') + '"><small>' + esc(c.name) + ' ・ ' + fmtDt(c.created) + (c.wasUnread ? ' ・ 新着' : '') + '</small>' + esc(c.body) + '</div>'; }).join('');
+}
+function editModal(t) {
+  var others = S.members.filter(function (m) { return m.email !== t.creator; });
+  var cur = {}; t.assignees.forEach(function (a) { cur[a.email] = 1; });
+  modal('<div class="mh"><h3>タスクの変更</h3></div><div class="mb">' +
+    '<div class="field"><label>見出し</label><input id="eTitle" type="text" value="' + esc(t.title) + '"></div>' +
+    '<div class="field"><label>内容</label><textarea id="eBody" rows="4">' + esc(t.body) + '</textarea></div>' +
+    '<div class="row2"><div class="field"><label>締切</label><input id="eDue" type="date" value="' + esc(t.due) + '"></div><div class="field"><label>時刻（任意）</label><input id="eDueTime" type="time" value="' + esc(t.dueTime) + '"></div></div>' +
+    '<div class="row2"><div class="field"><label>所要時間（分）</label><input id="eMins" type="number" min="1" step="5" value="' + esc(t.minutes) + '"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="eImportant" style="width:auto;height:auto;margin:0"' + (t.important ? ' checked' : '') + '>重要タスク（ピンク）</label></div></div>' +
+    '<div class="field"><label>リンク</label><input id="eLink" type="url" value="' + esc(t.link) + '"></div>' +
+    (t.scope === 'share' ? '<div class="field"><label>相手を足す（外すことはできません）</label><div class="chips" id="eTo">' + others.map(function (m) { return '<button class="chip' + (cur[m.email] ? ' on' : '') + '" data-e="' + esc(m.email) + '"' + (cur[m.email] ? ' disabled' : '') + '>' + esc(m.name) + '</button>'; }).join('') + '</div></div>' : '') +
+    '</div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn primary" id="eSave">保存</button></div>', function (bg) {
+    var add = {};
+    bg.querySelectorAll('#eTo .chip:not(:disabled)').forEach(function (b) { b.onclick = function () { if (add[b.dataset.e]) delete add[b.dataset.e]; else add[b.dataset.e] = 1; b.classList.toggle('on'); }; });
+    bg.querySelector('#eSave').onclick = function () {
+      call('updateTask', t.id, { title: bg.querySelector('#eTitle').value, body: bg.querySelector('#eBody').value, due: bg.querySelector('#eDue').value, dueTime: bg.querySelector('#eDueTime').value, minutes: bg.querySelector('#eMins').value, link: bg.querySelector('#eLink').value, important: bg.querySelector('#eImportant').checked, addTo: Object.keys(add) })
+        .then(function () { bg.remove(); toast('変更しました'); reloadBoard(); }).catch(fail);
+    };
+  });
+}
+
+// ---------- 発信したタスク ----------
+function renderSent() {
+  var list = S.sent;
+  $('sentBody').innerHTML = list.map(function (t) {
+    var c = dueClass(t);
+    return '<tr class="row" data-id="' + esc(t.id) + '"><td class="mono" style="white-space:nowrap;' + (c === 'late' ? 'color:var(--danger)' : '') + '">' + esc(dueLabel(t)) + '</td><td><div class="nm">' + esc(t.title) + '</div>' + (t.body ? '<div class="sub">' + esc(t.body.slice(0, 60)) + '</div>' : '') + '</td>' +
+      '<td style="font-size:12.5px">' + t.assignees.map(function (a) { return '<span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '" title="' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' : a.seenAt ? '開いたが未対応' : 'まだ開いていない') + '">' + esc(a.name) + '</span>'; }).join(' ') + '</td>' +
+      '<td class="mono">' + t.doneCount + ' / ' + t.assignees.length + '</td><td>' + (t.unread ? '<span class="tag late">返事待ち ' + t.unread + '</span>' : t.comments ? '<span class="hint">' + t.comments + ' 件</span>' : '') + '</td>' +
+      '<td style="white-space:nowrap">' + (t.doneCount < t.assignees.length ? '<button class="btn sm" data-remind title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + (lastRemind(t) ? '<div class="hint" style="margin-top:3px">送信 ' + fmtDt(lastRemind(t)) + '</div>' : '') + '</td></tr>';
+  }).join('');
+  $('sentEmpty').classList.toggle('hide', !!list.length);
+  $('sentCount').textContent = list.length ? list.length + ' 件' : '';
+  $('sentBody').querySelectorAll('tr').forEach(function (tr) {
+    tr.onclick = function (e) { if (e.target.closest('[data-remind]')) return; openTask(tr.dataset.id); };
+    var b = tr.querySelector('[data-remind]'); if (b) b.onclick = function (e) { e.stopPropagation(); doRemind(tr.dataset.id, b); };
+  });
+}
+function lastRemind(t) { return t.assignees.reduce(function (m, a) { return a.remindAt > m ? a.remindAt : m; }, ''); }
+function doRemind(id, btn) {
+  if (btn) btn.disabled = true;
+  call('sendReminder', id).then(function (r) { toast(r.count + ' 人にリマインドしました（' + r.names.join('・') + '）'); reloadBoard(); }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
+}
+
+// ---------- 完了したタスク ----------
+function loadDone() {
+  var month = $('doneMonth').value;
+  $('doneBody').innerHTML = '<tr><td colspan="6" class="hint">読み込み中…</td></tr>';
+  call('listDone', month || '').then(function (list) {
+    $('doneBody').innerHTML = list.map(function (t) {
+      var kind = t.kind === 'self' ? '自分用' : t.kind === 'assigned' ? '共有（自分の分）' : '発信（全員完了）';
+      return '<tr class="row" data-id="' + esc(t.id) + '"><td class="mono" style="white-space:nowrap">' + fmtDt(t.finished) + '</td><td><div class="nm">' + esc(t.title) + '</div>' + (t.body ? '<div class="sub">' + esc(t.body.slice(0, 60)) + '</div>' : '') + '</td><td><span class="tag done">' + kind + '</span></td><td>' + esc(t.creatorName) + '</td><td class="mono">' + esc(t.due ? fmtYmd(t.due) : '−') + '</td>' +
+        '<td>' + (t.kind !== 'sent' ? '<button class="btn sm" data-reopen>戻す</button>' : '') + '</td></tr>';
+    }).join('');
+    $('doneEmpty').classList.toggle('hide', !!list.length);
+    $('doneBody').querySelectorAll('tr').forEach(function (tr) {
+      tr.onclick = function (e) { if (e.target.closest('[data-reopen]')) return; openTask(tr.dataset.id); };
+      var b = tr.querySelector('[data-reopen]'); if (b) b.onclick = function (e) { e.stopPropagation(); call('reopenTask', tr.dataset.id).then(function () { toast('未完了に戻しました'); loadDone(); reloadBoard(); }).catch(fail); };
+    });
+  }).catch(fail);
+}
+$('doneMonth').onchange = loadDone;
+$('doneAll').onclick = function () { $('doneMonth').value = ''; loadDone(); };
+
+// ---------- 本日のスケジュール ----------
+function loadCal(force) {
+  var d = S.calDate || S.today;
+  var el = $('cal');
+  $('calTitle').textContent = (d === S.today ? '本日のスケジュール（' + fmtYmd(d) + '）' : fmtYmd(d) + ' のスケジュール');
+  $('calOpen').href = 'https://calendar.google.com/calendar/u/0/r/day/' + d.replace(/-/g, '/');
+  if (S.calCache[d] && !force) { renderCal(S.calCache[d]); return Promise.resolve(); }
+  el.innerHTML = '<div class="empty">読み込み中…</div>';
+  return call('getCalendar', d).then(function (r) { S.calCache[r.date] = r; if (r.date === (S.calDate || S.today)) renderCal(r); }).catch(function (e) { el.innerHTML = '<div class="empty">カレンダーを読めませんでした<br><span class="hint">' + esc(e.message || e) + '</span></div>'; });
+}
+function renderCal(r) {
+  var from = S.settings.cal_from || 8, to = S.settings.cal_to || 20, H = 44;
+  var timed = r.events.filter(function (e) { return !e.allDay; }), allday = r.events.filter(function (e) { return e.allDay; });
+  function mins(hm, def) { if (!hm) return def; var p = hm.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  var lo = from * 60, hi = to * 60;
+  timed.forEach(function (e) { var s = e.startYmd < r.date ? 0 : mins(e.start, lo); var en = e.endYmd > r.date ? 1440 : mins(e.end, hi); lo = Math.min(lo, Math.floor(s / 60) * 60); hi = Math.max(hi, Math.ceil(en / 60) * 60); });
+  var html = '';
+  if (allday.length) html += '<div class="allday">' + allday.map(function (e) { return '<div class="ad">' + esc(e.title) + '</div>'; }).join('') + '</div>';
+  html += '<div class="tl" style="height:' + ((hi - lo) / 60 * H) + 'px">';
+  for (var m = lo; m < hi; m += 60) html += '<div class="hr"><span>' + ('0' + (m / 60)).slice(-2) + ':00</span></div>';
+  timed.forEach(function (e, i) {
+    var s = e.startYmd < r.date ? 0 : mins(e.start, lo), en = e.endYmd > r.date ? 1440 : mins(e.end, hi);
+    var top = (Math.max(s, lo) - lo) / 60 * H, h = Math.max((Math.min(en, hi) - Math.max(s, lo)) / 60 * H - 2, 22);
+    var href = 'https://calendar.google.com/calendar/u/0/r/day/' + r.date.replace(/-/g, '/');
+    html += '<a class="ev c' + (i % 5 + 1) + '" href="' + href + '" target="_blank" rel="noopener" style="top:' + top + 'px;height:' + h + 'px" title="' + esc(e.title) + (e.location ? ' @ ' + e.location : '') + '"><b>' + esc(e.title) + '</b><small>' + esc(e.start) + '〜' + esc(e.end) + '</small></a>';
+  });
+  if (r.date === S.today) { var n = new Date(), nm = n.getHours() * 60 + n.getMinutes(); if (nm >= lo && nm <= hi) html += '<div class="nowline" style="top:' + ((nm - lo) / 60 * H) + 'px"></div>'; }
+  html += '</div>';
+  if (!r.events.length) html = '<div class="empty" style="padding:14px">予定はありません</div>' + html;
+  $('cal').innerHTML = html;
+}
+function shiftCal(n) { var d = new Date((S.calDate || S.today) + 'T00:00:00'); d.setDate(d.getDate() + n); S.calDate = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); loadCal(); }
+$('calPrev').onclick = function () { shiftCal(-1); }; $('calNext').onclick = function () { shiftCal(1); }; $('calToday').onclick = function () { S.calDate = S.today; loadCal(true); };
+
+// ---------- 新着メール ----------
+function loadMail() {
+  var el = $('mail');
+  if (!S.mail) el.innerHTML = '<div class="empty">読み込み中…</div>';
+  return call('getMail').then(function (r) {
+    S.mail = r;
+    $('mailN').textContent = r.unread; $('mailUnread').classList.toggle('hide', !r.unread);
+    $('mailAt').textContent = String(r.fetched).slice(11) + ' 時点';
+    el.innerHTML = r.list.map(function (m) {
+      return '<a class="m" href="https://mail.google.com/mail/u/0/#inbox/' + esc(m.id) + '" target="_blank" rel="noopener"><span class="d">' + esc(fmtDt(m.date)) + '</span><span class="f" title="' + esc(m.fromEmail) + '">' + esc(m.from) + '</span><span class="s">' + esc(m.subject) + (m.count > 1 ? ' (' + m.count + ')' : '') + '<small>' + esc(m.snippet) + '</small></span></a>';
+    }).join('') || '<div class="empty" style="padding:20px">未読のメールはありません</div>';
+  }).catch(function (e) { el.innerHTML = '<div class="empty">メールを読めませんでした<br><span class="hint">' + esc(e.message || e) + '</span></div>'; });
+}
+$('mailReload').onclick = function () { loadMail().then(function () { toast('更新しました'); }); };
+
+// ---------- リマインド（画面を開いている間だけ） ----------
+function startTimer() {
+  if (S.timer) clearInterval(S.timer);
+  var min = Math.max(1, Number(S.settings.remind_minutes) || 5);
+  S.timer = setInterval(function () { reloadBoard().then(function () { loadMail(); if ((S.calDate || S.today) === S.today) loadCal(true); }).catch(function () {}); }, min * 60000);
+}
+// 発信者が「リマインド」を押したタスクだけ、担当者（未完了）にポップアップ。「確認した」で消える
+function showReminders(list) {
+  list = list || [];
+  if (!list.length || S.remindOpen) return;
+  S.remindOpen = true;
+  var ids = list.map(function (r) { return r.id; });
+  modal('<div class="mh"><h3>🔔 リマインド</h3><span class="sp"></span><span class="hint">' + list.length + ' 件</span></div><div class="mb remind"><ul style="margin:0;padding-left:18px">' + list.map(function (r) { return '<li><b data-id="' + esc(r.id) + '">' + esc(r.creatorName) + ' さんからリマインド: ' + esc(r.title) + '</b><span class="hint">（' + esc(dueLabel(r)) + '・' + fmtDt(r.remindAt) + '）</span></li>'; }).join('') + '</ul></div><div class="mf"><button class="btn primary" id="remindOk">確認した</button></div>', function (bg) {
+    function done(openId) { call('markRemindersSeen', ids).then(function () { S.reminders = []; }).catch(function () {}); S.remindOpen = false; bg.remove(); if (openId) openTask(openId); }
+    bg.querySelector('#remindOk').onclick = function () { done(); };
+    bg.querySelectorAll('b[data-id]').forEach(function (b) { b.onclick = function () { done(b.dataset.id); }; });
+    bg.onclick = function (e) { if (e.target === bg) { S.remindOpen = false; } };
+  });
+}
+
+// ---------- 設定 ----------
+function renderSettings() {
+  $('sName').value = S.me.name || ''; $('sTitle').value = S.me.title || '';
+  $('aRemind').value = S.settings.remind_minutes; $('aFrom').value = S.settings.cal_from; $('aTo').value = S.settings.cal_to;
+}
+$('sSave').onclick = function () { call('setMyProfile', { name: $('sName').value, title: $('sTitle').value }).then(function (me) { me.isAdmin = S.me.isAdmin; S.me = me; toast('保存しました'); boot(); }).catch(fail); };
+$('aSave').onclick = function () { call('setSettings', { remind_minutes: $('aRemind').value, cal_from: $('aFrom').value, cal_to: $('aTo').value }).then(function () { S.settings.remind_minutes = Number($('aRemind').value); S.settings.cal_from = Number($('aFrom').value); S.settings.cal_to = Number($('aTo').value); startTimer(); loadCal(true); toast('保存しました'); }).catch(fail); };
+$('aMember').onclick = function () { call('setMemberProfile', $('aEmail').value, { name: $('aName').value }).then(function (m) { toast(m.name + ' さんを登録しました'); $('aEmail').value = ''; $('aName').value = ''; boot(); }).catch(fail); };
+
+boot();
+</script>
+<!-- サンプル版だけに付ける帯（人の切り替え） -->
+<div id="demoBar" style="position:fixed;right:16px;bottom:16px;z-index:30;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:10px 12px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 32px)">
+  <b style="background:#f59e0b;color:#111;border-radius:4px;padding:1px 6px">サンプル版</b>
+  <span>データは架空・カレンダーとメールも架空・保存されません</span>
+  <label>表示する人
+    <select id="demoUser" style="height:28px;font-size:12px;margin-left:4px">
+      <option value="hirayama@k-create.co.jp">平山（管理者）</option>
+      <option value="sato@k-create.co.jp">佐藤（メンバー）</option>
+      <option value="kato@k-create.co.jp">加藤（メンバー）</option>
+      <option value="new@k-create.co.jp">新しく入った人</option>
+    </select>
+  </label>
+</div>
+<script>
+(function () {
+  var sel = document.getElementById('demoUser');
+  sel.value = __u;
+  sel.onchange = function () { location.search = '?user=' + encodeURIComponent(sel.value); };
+})();
+</script>
+</body>
+</html>
