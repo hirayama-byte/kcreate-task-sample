@@ -141,7 +141,8 @@
   .note .qbtn .ub { background: var(--danger); color: #fff; border-radius: 999px; font-size: 10px; font-family: var(--mono); padding: 0 5px; line-height: 16px; }
   .note .donebtn { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; height: 24px; padding: 0 9px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; flex: none; }
   .note .qbtn { white-space: nowrap; flex: none; padding: 0 6px; }
-  .note .who { flex-wrap: wrap; } .note .who .prog { margin-left: auto; white-space: nowrap; }
+  .note .who { flex-wrap: nowrap; min-width: 0; } .note .who .wt { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .note .who .prog { margin-left: auto; white-space: nowrap; flex: none; } /* 完了人数は改行しない */
+  .note .meta { margin-top: auto; } /* 締切・発信者・ボタンの段は付箋の下側にまとめる（ボタンはいつも一番下） */
   .note .donebtn:hover { background: #0f766e; }
   .note .donebtn.sent { background: #fff; color: #334155; border-color: rgba(0,0,0,.15); }
   .note .prog { font-size: 11px; font-family: var(--mono); color: #475569; }
@@ -216,7 +217,10 @@
     #calCard, #mailCard { display: none; }
     #boardCard, #createCard { grid-column: 1; grid-row: auto; }
     #createCard { overflow: visible; scroll-margin-top: 104px; } /* 上の固定バーの下に見出しが来るように */
-    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 10px; overflow: visible; flex: none; } /* スマホは2列（3列は小さい画面で見づらい・2026-10-31 オーナー） */ /* 枠の中ではスクロールせず、ページごと縦に流す */
+    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; padding: 10px; overflow: visible; flex: none; } /* 1fr = どの行も一番高い付箋に合わせて同じ高さ */
+    .note .who .wt { display: none; } /* 発信者はアイコンだけ（名前は長押し・詳細で） */
+    .note .meta { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; min-height: 38px; gap: 0; } .note .meta .mins { align-self: flex-end; margin-left: 0; } /* 締切の行・所要時間の行の2行に固定（配置をそろえる） */
+    .note .meta .due { white-space: nowrap; } /* スマホは2列（3列は小さい画面で見づらい・2026-10-31 オーナー） */ /* 枠の中ではスクロールせず、ページごと縦に流す */
     #boardCard .card-h { flex-wrap: wrap; } .legend { white-space: normal; flex-wrap: wrap; } #doneBtn { display: none; } /* 完了したタスクは上のメニューから */
     .row2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .tbl table { font-size: 12.5px; }
@@ -1229,7 +1233,7 @@ function noteHtml(t) {
     (t.body ? '<div class="nb">' + esc(t.body) + '</div>' : '') +
     '<div class="meta"><span class="due ' + c + '" title="締切">' + '📅 ' + esc(dueLabel(t)) + (c === 'late' ? ' ⚠' : '') + '</span>' +
     (t.minutes ? '<span class="mins' + (Number(t.minutes) <= 5 ? ' urgent' : '') + '" title="所要時間">⏱ ' + esc(t.minutes) + '分</span>' : '') + '</div>' +
-    '<div class="who"><span class="av">' + esc(initial(t.creatorName)) + '</span><span>' + who + '</span>' + (t.scope === 'share' && t.assignees.length > 1 ? '<span class="prog">' + t.doneCount + '/' + t.assignees.length + ' 完了</span>' : '') + '</div>' +
+    '<div class="who" title="' + (t.isCreator ? '' : '発信: ') + esc(t.creatorName) + '"><span class="av">' + esc(initial(t.creatorName)) + '</span><span class="wt">' + who + '</span>' + (t.scope === 'share' && t.assignees.length > 1 ? '<span class="prog">' + t.doneCount + '/' + t.assignees.length + '&nbsp;完了</span>' : '') + '</div>' +
     '<div class="foot"><button class="qbtn' + (t.comments ? ' has' : '') + '" data-q title="質問・返事' + (t.comments ? '（' + t.comments + ' 件）' : 'を書く') + '">💬' + (t.unread ? '<span class="ub">' + t.unread + '</span>' : '') + '</button>' +
     (t.link ? '<a class="lbtn" href="' + esc(t.link) + '" target="_blank" rel="noopener" data-stop title="' + esc(t.link) + '">リンク🔗</a>' : '') +
     (t.myStatus === 'open' ? '<button class="donebtn" data-done>✓ 完了</button>' : '<button class="donebtn sent" data-open>進み具合</button>') + '</div></div>';
