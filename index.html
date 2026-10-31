@@ -200,30 +200,34 @@
     .board { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .cal { max-height: 320px; }
   }
+  .mcreate { display: none; }
+  /* スマホ: 上のバー（タスク管理＋タスクの作成＋メニュー）を固定し、下はタスク一覧→作成画面を縦スクロールだけで見る。カレンダー・Gmail・リンク集は出さない */
   @media (max-width: 900px) {
-    .app { grid-template-columns: 1fr; height: auto; }
-    .main { display: block; } main { overflow: visible; }
-    .side { position: static; height: auto; min-width: 0; }
-    .spacer { display: none; }
-    #tabs { flex-direction: row; overflow-x: auto; flex: none; } #tabs button { width: auto; white-space: nowrap; }
-    #linksWrap { border-top: 0; padding-top: 0; } .side-sec { display: none; } #links { display: flex; gap: 4px; overflow-x: auto; padding: 0 10px 10px; } #links a { white-space: nowrap; padding: 6px 10px; } #links a .ext { display: none; }
-    .me { display: none; }
-    main { padding: 14px; }
-    .dash { grid-template-columns: 1fr; height: auto; grid-template-rows: auto; }
-    .mail { max-height: 320px; }
-    #boardCard, #createCard, #calCard, #mailCard { grid-column: 1; grid-row: auto; }
-    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    #boardCard .card-h { flex-wrap: wrap; } .legend { white-space: normal; flex-wrap: wrap; }
-    .cal { max-height: 420px; }
-    .mail .m { grid-template-columns: 1fr; gap: 2px; }
-    .row2 { grid-template-columns: 1fr; }
+    html, body { height: auto; } body { overflow-x: clip; } /* ページ全体が縦に流れる（clip は中の箱をスクロールさせない） */
+    .app { grid-template-columns: minmax(0, 1fr); height: auto; }
+    .main { display: block; } main { overflow: visible; padding: 12px; }
+    .side { position: sticky; top: 0; z-index: 20; height: auto; min-width: 0; flex-direction: row; flex-wrap: wrap; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+    .brand { flex: 1; min-width: 0; border-bottom: 0; padding: 10px 14px; } .brand small { display: none; } .brand .logo { width: 28px; height: 28px; }
+    .mcreate { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: #f59e0b; color: #111; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    #tabs { width: 100%; flex-direction: row; padding: 0 8px 8px; gap: 4px; overflow: visible; } #tabs button { width: auto; flex: 1; justify-content: center; white-space: nowrap; padding: 7px 6px; font-size: 12.5px; } #tabs button svg { width: 15px; height: 15px; }
+    .spacer, #linksWrap, .me { display: none; }
+    .dash { grid-template-columns: minmax(0, 1fr); height: auto; grid-template-rows: auto; }
+    #calCard, #mailCard { display: none; }
+    #boardCard, #createCard { grid-column: 1; grid-row: auto; }
+    #createCard { overflow: visible; scroll-margin-top: 104px; } /* 上の固定バーの下に見出しが来るように */
+    .board { grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; flex: none; } /* 枠の中ではスクロールせず、ページごと縦に流す */
+    #boardCard .card-h { flex-wrap: wrap; } .legend { white-space: normal; flex-wrap: wrap; } #doneBtn { display: none; } /* 完了したタスクは上のメニューから */
+    .row2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .tbl table { font-size: 12.5px; }
   }
+  @media (max-width: 360px) { .board { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
 <div class="app">
   <aside class="side">
     <div class="brand" id="brand" title="ダッシュボードに戻る"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div><b>タスク管理</b><small>K-CREATE</small></div><span class="bdg hide" id="bdgBoard" title="返事・質問の未読"></span></div>
+    <button class="mcreate" id="mCreate">＋ タスクの作成</button>
     <nav id="tabs">
       <button data-tab="sent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>発信したタスク<span class="bdg hide" id="bdgSent"></span></button>
       <button data-tab="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>完了したタスク</button>
@@ -1155,7 +1159,9 @@ function show(tab) {
   if (tab === 'settings') renderSettings();
 }
 document.querySelectorAll('#tabs button').forEach(function (b) { b.onclick = function () { show(b.dataset.tab); }; });
-$('brand').onclick = function () { show('dash'); };
+$('brand').onclick = function () { show('dash'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+// スマホ: 上のボタンで一番下の作成画面へ
+$('mCreate').onclick = function () { show('dash'); setTimeout(function () { $('createCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(function () { $('cTitle').focus({ preventScroll: true }); }, 400); }, 50); };
 
 // ---------- 起動 ----------
 function boot() {
