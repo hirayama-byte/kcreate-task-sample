@@ -205,6 +205,33 @@
   .ask { display: flex; gap: 8px; align-items: flex-end; } .ask textarea { min-height: 60px; }
   .remind li { margin: 4px 0; line-height: 1.6; } .remind li b { cursor: pointer; color: #0369a1; }
   .notice { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.7; margin-bottom: 14px; }
+  /* 全員の状況（2026-11-01） */
+  .ovsum { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .ovsum button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 14px; font: inherit; cursor: pointer; display: flex; align-items: baseline; gap: 8px; text-align: left; }
+  .ovsum button b { font-family: var(--mono); font-size: 20px; }
+  .ovsum button small { color: var(--muted); font-size: 12px; }
+  .ovsum button.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(20,184,166,.2); }
+  .ovsum .late b { color: var(--danger); } .ovsum .behind b { color: #c2410c; } .ovsum .heavy b { color: #a16207; } .ovsum .help b { color: #0369a1; } .ovsum .ok b { color: var(--ok); }
+  .lv { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .lv.late { background: #fee2e2; color: #b91c1c; } .lv.behind { background: #ffedd5; color: #c2410c; } .lv.heavy { background: #fef9c3; color: #a16207; } .lv.help { background: #e0f2fe; color: #0369a1; } .lv.ok { background: #dcfce7; color: #15803d; }
+  #ovTable td { white-space: nowrap; } #ovTable td.n { font-family: var(--mono); text-align: right; } #ovTable th.n { text-align: right; }
+  #ovTable td.n.z { color: #cbd5e1; } #ovTable td.n.bad { color: var(--danger); font-weight: 700; } #ovTable td.n.warn { color: #c2410c; font-weight: 700; } #ovTable td.n.info { color: #0369a1; font-weight: 700; }
+  #ovTable tr.lv-late td:first-child { box-shadow: inset 3px 0 0 var(--danger); } #ovTable tr.lv-behind td:first-child { box-shadow: inset 3px 0 0 #f97316; } #ovTable tr.lv-heavy td:first-child { box-shadow: inset 3px 0 0 #eab308; } #ovTable tr.lv-help td:first-child { box-shadow: inset 3px 0 0 #0ea5e9; }
+  .kbar { display: flex; align-items: center; gap: 8px; min-width: 210px; }
+  .kbar .bar { flex: 1; display: flex; height: 12px; border-radius: 4px; overflow: hidden; background: #f1f5f9; min-width: 90px; }
+  .kbar .bar i { display: block; height: 100%; } .kbar .bar .y { background: #fde047; } .kbar .bar .g { background: #a3e635; } .kbar .bar .b { background: #7dd3fc; }
+  .kbar .nums { font-family: var(--mono); font-size: 12px; color: #475569; white-space: nowrap; } .kbar .nums b { color: var(--text); font-size: 13px; }
+  .kbar .nums .y { color: #a16207; } .kbar .nums .g { color: #4d7c0f; } .kbar .nums .b { color: #0369a1; }
+  .ovwhy { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: normal; max-width: 220px; }
+  .mvhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .mvhead h2 { margin: 0; font-size: 17px; } .mvhead .sp { flex: 1; }
+  #mvBoard { max-height: none; overflow: visible; }
+  .ro-note { font-size: 11px; color: #475569; background: rgba(255,255,255,.6); border: 1px solid rgba(0,0,0,.1); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+  .vchecks { max-height: 220px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 900px) { #tabs button { min-width: 0; overflow: hidden; text-overflow: ellipsis; } #mvBoard { overflow: visible; } }
+  @media (max-width: 560px) { #tabs button svg { display: none; } #tabs button { font-size: 12px; padding: 7px 2px; gap: 3px; } #tabs button .bdg { padding: 0 5px; font-size: 10px; } }
+  #tabs .st { display: none; } @media (max-width: 560px) { #tabs .lg { display: none; } #tabs .st { display: inline; } #tabs button { font-size: 12.5px; } }
+  @media (max-width: 900px) { .vchecks { grid-template-columns: 1fr 1fr; } .ovsum button { padding: 6px 10px; } .ovsum button b { font-size: 17px; } }
   .linkrows div { display: grid; grid-template-columns: 1fr 1.6fr auto; gap: 8px; margin-bottom: 8px; }
   @media (max-width: 1280px) {
     .dash { grid-template-columns: minmax(0, 1fr) 280px; }
@@ -252,8 +279,9 @@
     <div class="brand" id="brand" title="ダッシュボードに戻る"><div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div><b>タスク管理</b><small>K-CREATE</small></div><span class="bdg hide" id="bdgBoard" title="返事・質問の未読"></span></div>
     <button class="mcreate" id="mCreate">＋ タスクの作成</button>
     <nav id="tabs">
-      <button data-tab="sent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>発信したタスク<span class="bdg hide" id="bdgSent"></span></button>
-      <button data-tab="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>完了したタスク</button>
+      <button data-tab="sent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg><span class="lg">発信したタスク</span><span class="st">発信</span><span class="bdg hide" id="bdgSent"></span></button>
+      <button data-tab="team" class="hide" id="teamTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span class="lg">全員の状況</span><span class="st">全員</span><span class="bdg hide" id="bdgTeam" title="遅れのある人"></span></button>
+      <button data-tab="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span class="lg">完了したタスク</span><span class="st">完了</span></button>
       <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>設定</button>
     </nav>
     <div class="spacer"></div>
@@ -302,6 +330,36 @@
         </div>
       </section>
 
+      <!-- 全員の状況（管理者＋選ばれた人だけ） -->
+      <section id="team" class="hide">
+        <div class="card">
+          <div class="card-h"><h2>全員の状況</h2><span class="hint">残っているタスク・遅れ・偏りをひと目で。行を押すとその人のタスク管理画面が見られます（見るだけ）</span><span class="sp"></span><select id="ovDept" style="height:30px;width:auto"><option value="">全部署</option></select><select id="ovSort" style="height:30px;width:auto"><option value="level">気になる順</option><option value="open">残りが多い順</option><option value="minutes">所要時間が多い順</option><option value="name">名前順</option></select><button class="btn sm ghost" id="ovReload" title="最新に更新">⟳</button></div>
+          <div class="ovsum" id="ovSum"></div>
+          <div class="tbl"><table id="ovTable"><thead><tr><th>名前</th><th>状態</th><th>残りのタスク（<span style="color:#a16207">個人</span>・<span style="color:#4d7c0f">チーム</span>・<span style="color:#0369a1">全社</span>）</th><th class="n">期限超過</th><th class="n">今日・明日</th><th class="n">未開封</th><th class="n">返事待ち</th><th class="n">所要合計</th><th class="n" id="ovLateH">最近の遅れ</th></tr></thead><tbody id="ovBody"></tbody></table></div>
+          <div class="empty hide" id="ovEmpty">該当する人はいません</div>
+          <p class="hint" style="padding:10px 16px;margin:0;border-top:1px solid var(--line)">
+            <span class="lv late">遅れあり</span> 締切を過ぎた未完了がある
+            <span class="lv behind">遅れ気味</span> 今日・明日の締切が3件以上／今日が締切なのにまだ開いていない／最近の遅れが2回以上
+            <span class="lv heavy">多め</span> 残りの件数か所要時間が全員の平均の1.5倍以上
+            <span class="lv help">返事待ち</span> 本人が書いた質問に、まだ返事がない
+          </p>
+        </div>
+      </section>
+
+      <!-- その人のタスク管理画面（見るだけ） -->
+      <section id="member" class="hide">
+        <div class="mvhead"><button class="btn sm" id="mvBack">← 全員の状況</button><h2 id="mvName"></h2><span id="mvLv"></span><span class="hint" id="mvSum"></span><span class="sp"></span><span class="pill">見るだけ（完了・書き込みは本人が行います）</span><button class="btn sm ghost" id="mvReload" title="最新に更新">⟳</button></div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-h"><h2>タスク管理一覧</h2><span class="hint" id="mvHint"></span><span class="sp"></span><span class="legend"><span><i class="yellow"></i>個人</span><span><i class="pink"></i>重要</span><span><i class="green"></i>チーム</span><span><i class="blue"></i>全社</span></span></div>
+          <div class="board" id="mvBoard"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h2>この人が発信したタスク（未完了）</h2><span class="sp"></span><span class="hint" id="mvSentN"></span></div>
+          <div class="tbl"><table><thead><tr><th>締切</th><th>見出し</th><th>相手</th><th>進み具合</th></tr></thead><tbody id="mvSent"></tbody></table></div>
+          <div class="empty hide" id="mvSentEmpty">発信した未完了のタスクはありません</div>
+        </div>
+      </section>
+
       <!-- 完了したタスク -->
       <section id="done" class="hide">
         <div class="card">
@@ -327,6 +385,9 @@
             <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
             <div class="field"><label>メンバーの名前を代理で登録（まだ使っていない人の事前登録にも）</label><div class="row2"><input id="aEmail" type="email" placeholder="メールアドレス"><input id="aName" type="text" placeholder="名前（フルネーム）"></div></div>
             <button class="btn" id="aMember">登録</button>
+            <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+            <div class="field"><label style="display:flex;align-items:center;gap:4px">「全員の状況」を見られる人（<b id="aVN">0</b> 人）<span style="flex:1"></span><span class="hint">管理者はいつでも見られます</span></label><div class="checks vchecks" id="aViewers"></div></div>
+            <button class="btn" id="aViewSave">見られる人を保存</button>
           </div>
         </div>
       </section>
@@ -710,8 +771,10 @@ function init() {
   var email = myEmail_();
   if (!email) throw new Error('ログイン情報が取得できません。会社のGoogleアカウントで開いてください');
   if (!ss_().getSheetByName('tasks')) setup();
+  var tsh = sheet_('tasks'); if (tsh.getLastColumn() < TASK_HEAD.length) tsh.getRange(1, 1, 1, TASK_HEAD.length).setValues([TASK_HEAD]); // 後から足した列（repeat, repeat_lead）の見出し
   var me = member_(email);
   me.isAdmin = isAdmin_(email);
+  me.canOverview = canOverview_(email);
   var s = settings_();
   return {
     me: me,
@@ -723,7 +786,8 @@ function init() {
     today: today_(),
     board: me.name ? (rollRepeats_(), board_(email)) : [],
     sent: me.name ? sent_(email) : [],
-    reminders: me.name ? myReminders_(email) : []
+    reminders: me.name ? myReminders_(email) : [],
+    viewers: me.isAdmin ? viewers_() : [] // 全員の状況を見られる人（管理者の設定画面用）
   };
 }
 function links_() {
@@ -872,6 +936,80 @@ function sent_(email) {
   return out.sort(boardOrder_);
 }
 function getBoard() { var email = myEmail_(); rollRepeats_(); return { board: board_(email), sent: sent_(email), reminders: myReminders_(email), today: today_() }; }
+
+// ---------- 全員の状況（管理者＋管理者が選んだ人だけ・2026-11-01） ----------
+// settings の overview_viewers（メールを , 区切り）に入っている人と管理者が見られる。見るだけ（完了・書き込みはできない）
+var OVERVIEW_LATE_DAYS = 30; // 「最近の遅れ」を数える日数
+function viewers_() { return String(settings_().overview_viewers || '').split(',').map(function (e) { return e.trim().toLowerCase(); }).filter(isEmail_); }
+function canOverview_(email) { return isAdmin_(email) || viewers_().indexOf(email) >= 0; }
+function checkOverview_() { var email = myEmail_(); if (!canOverview_(email)) throw new Error('全員の状況は管理者と、管理者が選んだ人だけが見られます'); return email; }
+function setOverviewViewers(list) {
+  if (!isAdmin_(myEmail_())) throw new Error('見られる人の設定は管理者だけが変えられます');
+  var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
+  var out = []; (list || []).forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (known[e] && out.indexOf(e) < 0) out.push(e); });
+  var sh = sheet_('settings'), rows = rows_('settings'), row = 0;
+  for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === 'overview_viewers') { row = i + 2; break; }
+  if (row) sh.getRange(row, 2).setValue(out.join(',')); else sh.appendRow(['overview_viewers', out.join(',')]);
+  bust_('settings');
+  return out;
+}
+// 一人分の状況（残っているタスクを 個人/チーム/全社 に分けて・遅れ・未開封・返事待ち など）
+function personStatus_(email, tasks, nowS, today, tomorrow, since) {
+  var st = { open: 0, self: 0, team: 0, all: 0, important: 0, late: 0, soon: 0, unseen: 0, unseenSoon: 0, minutes: 0, week: 0, waiting: 0, unread: 0, remind: 0, lateDone: 0, lateTasks: [] };
+  var week = addDays_(today, 7);
+  function add(t, a) {
+    st.open++; st[t.kind]++; if (t.important) st.important++;
+    st.minutes += Number(t.minutes) || 0;
+    var key = t.due ? t.due + ' ' + (t.dueTime || '23:59') : '';
+    if (key && key < nowS) { st.late++; st.lateTasks.push({ id: t.id, title: t.title, due: t.due, dueTime: t.dueTime }); }
+    else if (t.due && t.due <= tomorrow) st.soon++;
+    if (t.due && t.due <= week) st.week++;
+    if (a && !String(a[5] || '')) { st.unseen++; if (t.due && t.due <= today) st.unseenSoon++; } // 今日（か超過）が締切なのにまだ開いていない
+    if (a && String(a[6] || '') && !String(a[7] || '')) st.remind++;
+  }
+  var openIds = {};
+  Object.keys(tasks).forEach(function (id) { var t = tasks[id]; if (t.scope === 'self' && t.creator === email && t.status === 'open') { add(t, null); openIds[id] = 1; } });
+  rows_('assignments').forEach(function (r) {
+    if (String(r[1]).toLowerCase() !== email) return;
+    var t = tasks[String(r[0])]; if (!t) return;
+    var key = t.due ? t.due + ' ' + (t.dueTime || '23:59') : '';
+    if (String(r[2]) === 'done') { var d = str_(r[3]); if (key && d > key && d >= since) st.lateDone++; return; } // 最近、締切を過ぎてから完了した
+    add(t, r); openIds[t.id] = 1;
+  });
+  Object.keys(tasks).forEach(function (id) { var t = tasks[id]; if (t.scope === 'self' && t.creator === email && t.status === 'done' && t.due && t.doneAt >= since && t.doneAt > t.due + ' ' + (t.dueTime || '23:59')) st.lateDone++; });
+  rows_('history').forEach(function (r) { // 繰り返しの前の回で間に合わなかった
+    if (String(r[3]).toLowerCase() !== email || str_(r[6]) < since) return;
+    var p = personHist_(email, str_(r[4]), str_(r[5]), ymdOf_(r[1]), String(r[2] || '')); if (p.late) st.lateDone++;
+  });
+  // 返事待ち: 自分が書いた質問が、そのタスクの最後の書き込みのまま（発信者からまだ返事がない）
+  var last = {};
+  rows_('comments').forEach(function (r) { var id = String(r[1]); if (!openIds[id]) return; if (!last[id] || str_(r[4]) >= last[id].at) last[id] = { at: str_(r[4]), by: String(r[2]).toLowerCase() }; if ((',' + String(r[5] || '') + ',').indexOf(',' + email + ',') >= 0) st.unread++; });
+  Object.keys(last).forEach(function (id) { if (last[id].by === email && tasks[id].creator !== email) st.waiting++; });
+  return st;
+}
+function getOverview() {
+  var me = checkOverview_();
+  rollRepeats_();
+  var tasks = tasksMap_(), nowS = now_(), today = today_(), tomorrow = addDays_(today, 1), since = addDays_(today, -OVERVIEW_LATE_DAYS) + ' 00:00';
+  if (ss_().getSheetByName('history')) rows_('history'); else memo_.history = [];
+  var list = membersList_().map(function (m) { var s = personStatus_(m.email, tasks, nowS, today, tomorrow, since); s.email = m.email; s.name = m.name; s.title = m.title; return s; });
+  var avgOpen = list.length ? list.reduce(function (n, s) { return n + s.open; }, 0) / list.length : 0;
+  var avgMin = list.length ? list.reduce(function (n, s) { return n + s.minutes; }, 0) / list.length : 0;
+  list.forEach(function (s) {
+    s.heavy = s.open >= 3 && ((avgOpen && s.open >= avgOpen * 1.5) || (avgMin && s.minutes >= 60 && s.minutes >= avgMin * 1.5)); // 平均の1.5倍以上 = 偏り
+    s.behind = s.soon >= 3 || s.unseenSoon > 0 || s.lateDone >= 2;                                                                // 遅れ気味
+    s.level = s.late ? 'late' : s.behind ? 'behind' : s.heavy ? 'heavy' : s.waiting ? 'help' : 'ok';
+  });
+  return { list: list, today: today, now: nowS, avgOpen: Math.round(avgOpen * 10) / 10, avgMinutes: Math.round(avgMin), lateDays: OVERVIEW_LATE_DAYS, viewers: isAdmin_(me) ? viewers_() : null };
+}
+// そのスタッフのボード（見るだけ）。付箋はその人から見た形
+function getMemberBoard(email) {
+  checkOverview_();
+  email = String(email || '').trim().toLowerCase();
+  var m = member_(email); if (!m.name) throw new Error('その人は登録されていません');
+  rollRepeats_();
+  return { member: m, board: board_(email), sent: sent_(email), today: today_() };
+}
 
 // ---------- 繰り返し ----------
 // 日付は yyyy-MM-dd の文字で計算（UTC の Date を使うのでタイムゾーンでずれない）
@@ -1164,7 +1302,7 @@ function listDone(month) {
 function getTask(id) {
   var email = myEmail_();
   var x = taskRow_(id), t = x.t;
-  if (!canSee_(t, email)) throw new Error('このタスクを見る権限がありません');
+  if (!canSee_(t, email) && !canOverview_(email)) throw new Error('このタスクを見る権限がありません'); // 全員の状況を見られる人は、他の人のタスクも見るだけできる
   var ash = sheet_('assignments'), arows = rows_('assignments');
   for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email && !String(arows[i][5] || '')) { ash.getRange(i + 2, 6).setValue(now_()); bust_('assignments'); break; }
   var csh = sheet_('comments'), crows = rows_('comments'), changed = false, comments = [];
@@ -1326,6 +1464,14 @@ function getMailApi_() {
   t.r5 = at(K, function () { return createTask({ title: '一宮建設 求人原稿の確認', body: '原稿データが届きました。文字校正をお願いします', due: ymd(3), minutes: '20', link: 'https://drive.google.com/', scope: 'share', to: [H, S] }); });
   // 佐藤の自分用
   at(S, function () { createTask({ title: 'ヘアサロンmoon 訪問', body: '来月の掲載プラン提案', due: ymd(0), dueTime: '14:00', minutes: '60' }); createTask({ title: '請求書の発行（10月分）', due: ymd(3) }); });
+  // 全員の状況のサンプル: 鈴木=多め・伊藤=遅れ・小川=返事待ち・田中=遅れ気味
+  at('suzuki@k-create.co.jp', function () { [['A社 年間契約の提案書', 2, 120], ['B社 見積の作り直し', 3, 60], ['C社 訪問', 1, 90], ['D社 原稿回収', 4, 30], ['E社 請求確認', 5, 30], ['新規リスト 30件電話', 6, 180]].forEach(function (x) { createTask({ title: x[0], due: ymd(x[1]), minutes: String(x[2]) }); }); });
+  at('ito@k-create.co.jp', function () { createTask({ title: 'F社 校正戻し', body: '先方の修正を反映して再送', due: ymd(-2), minutes: '30' }); createTask({ title: 'G社 入金確認', due: ymd(-1), minutes: '10' }); });
+  var oq = at('tanaka@k-create.co.jp', function () { return createTask({ title: '江南版 地図イラストの差し替え', body: '新店舗を地図に追加してください', due: ymd(3), minutes: '40', scope: 'share', to: ['ogawa@k-create.co.jp'] }); });
+  at('ogawa@k-create.co.jp', function () { getTask(oq.id); addComment(oq.id, '店舗の正確な住所をいただけますか？'); });
+  at(H, function () { createTask({ title: '江南版 チラシ 最終確認', body: '今日中に印刷所へ', due: ymd(0), minutes: '20', scope: 'share', to: ['tanaka@k-create.co.jp'] }); });
+  at('tanaka@k-create.co.jp', function () { createTask({ title: '表紙ロゴの書き出し', due: ymd(0), minutes: '15' }); createTask({ title: 'バナー3種 納品', due: ymd(1), minutes: '60' }); });
+  setOverviewViewers([S]); // 佐藤さんも全員の状況を見られる（サンプル）
   // 完了しているもの
   var old1 = createTask({ title: '10月号 入稿完了報告', body: 'サイボウズに校了報告', due: ymd(-10) }); completeTask(old1.id);
   var old2 = createTask({ title: '見積作成サイト ゴミ箱から復元', due: ymd(-1) }); completeTask(old2.id);
@@ -1390,7 +1536,7 @@ function getMailApi_() {
 </script>
 <script id="app">
 var booted = false;
-var S = { me: null, members: [], links: [], settings: {}, kinds: [], today: '', board: [], sent: [], tab: 'dash', kind: 'self', to: {}, excl: {}, calDate: '', calCache: {}, mail: null, timer: null, reminders: [], remindOpen: false };
+var S = { me: null, members: [], links: [], settings: {}, kinds: [], today: '', board: [], sent: [], tab: 'dash', kind: 'self', to: {}, excl: {}, calDate: '', calCache: {}, mail: null, timer: null, reminders: [], remindOpen: false, ov: null, mv: null, mvEmail: '', viewers: [] };
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function call(name) {
@@ -1441,11 +1587,12 @@ function dueTag(t) { var c = dueClass(t); return '<span class="tag ' + (c || 'op
 function memberName(email) { var m = S.members.filter(function (x) { return x.email === email; })[0]; return m ? m.name : (email || '').split('@')[0]; }
 
 // ---------- タブ ----------
-var TITLES = { dash: 'ダッシュボード', sent: '発信したタスク', done: '完了したタスク', settings: '設定' };
+var TITLES = { dash: 'ダッシュボード', sent: '発信したタスク', team: '全員の状況', member: 'メンバーのタスク', done: '完了したタスク', settings: '設定' };
 function show(tab) {
   S.tab = tab;
-  ['dash', 'sent', 'done', 'settings'].forEach(function (t) { $(t).classList.toggle('hide', t !== tab); });
-  document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === tab); });
+  ['dash', 'sent', 'team', 'member', 'done', 'settings'].forEach(function (t) { $(t).classList.toggle('hide', t !== tab); });
+  document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === (tab === 'member' ? 'team' : tab)); });
+  if (tab === 'team') loadOverview();
   if (tab === 'sent') renderSent();
   if (tab === 'done') loadDone();
   if (tab === 'settings') renderSettings();
@@ -1465,6 +1612,8 @@ function boot() {
     else { $('meName').textContent = '名前を登録'; $('meAv').textContent = '?'; }
     $('linksEdit').classList.toggle('hide', !r.me.isAdmin);
     $('adminCard').classList.toggle('hide', !r.me.isAdmin);
+    $('teamTab').classList.toggle('hide', !r.me.canOverview); S.viewers = r.viewers || [];
+    if (!r.me.canOverview && (S.tab === 'team' || S.tab === 'member')) S.tab = 'dash';
     renderLinks(); renderTo(); renderBoard(); updateBadges();
     if (!r.me.name) nameModal(true);
     if (!booted) { loadCal(); loadMail(); startTimer(); }
@@ -1512,9 +1661,10 @@ $('linksEdit').onclick = function () {
 };
 
 // ---------- 付箋ボード ----------
-function noteHtml(t) {
+function noteHtml(t, ro) { // ro = 他の人のボードを見るだけ（完了ボタンなし・「自分」は「本人」）
   var c = dueClass(t);
-  var who = t.isCreator ? (t.kind === 'all' ? '自分が全社に発信' : t.scope === 'share' ? '自分が発信' : '個人') : '発信: ' + esc(t.creatorName);
+  var self = ro ? '本人' : '自分';
+  var who = t.isCreator ? (t.kind === 'all' ? self + 'が全社に発信' : t.scope === 'share' ? self + 'が発信' : '個人') : '発信: ' + esc(t.creatorName);
   return '<div class="note ' + esc(t.color) + '" data-id="' + esc(t.id) + '">' +
     '<div class="nt">' + esc(t.title) + '</div>' +
     (t.body ? '<div class="nb">' + esc(t.body) + '</div>' : '') +
@@ -1523,12 +1673,12 @@ function noteHtml(t) {
     '<div class="who" title="' + (t.isCreator ? '' : '発信: ') + esc(t.creatorName) + '"><span class="av">' + esc(initial(t.creatorName)) + '</span><span class="wt">' + who + '</span>' + (t.scope === 'share' && t.assignees.length > 1 ? '<span class="prog">' + t.doneCount + '/' + t.assignees.length + '&nbsp;完了</span>' : '') + '</div>' +
     '<div class="foot"><button class="qbtn' + (t.comments ? ' has' : '') + '" data-q title="質問・返事' + (t.comments ? '（' + t.comments + ' 件）' : 'を書く') + '">💬' + (t.unread ? '<span class="ub">' + t.unread + '</span>' : '') + '</button>' +
     (t.link ? '<a class="lbtn" href="' + esc(t.link) + '" target="_blank" rel="noopener" data-stop title="' + esc(t.link) + '">リンク🔗</a>' : '') +
-    (t.myStatus === 'open' ? '<button class="donebtn" data-done>✓ 完了</button>' : '<button class="donebtn sent" data-open>進み具合</button>') + '</div></div>';
+    (ro ? '<span class="ro-note">' + (t.assignees.some(function (a) { return a.email === S.mvEmail && a.seenAt; }) || t.scope === 'self' ? '未完了' : 'まだ開いていない') + '</span>' : t.myStatus === 'open' ? '<button class="donebtn" data-done>✓ 完了</button>' : '<button class="donebtn sent" data-open>進み具合</button>') + '</div></div>';
 }
 function renderBoard() {
   var b = $('board');
   if (!S.board.length) { b.innerHTML = '<div class="empty">今のタスクはありません。右の「タスクの作成」から作れます</div>'; $('boardHint').textContent = ''; return; }
-  b.innerHTML = S.board.map(noteHtml).join('');
+  b.innerHTML = S.board.map(function (t) { return noteHtml(t); }).join('');
   var late = S.board.filter(function (t) { return dueClass(t) === 'late'; }).length, today = S.board.filter(function (t) { return dueClass(t) === 'today'; }).length;
   $('boardHint').textContent = S.board.length + ' 件' + (late ? '・超過 ' + late : '') + (today ? '・今日 ' + today : '');
   b.querySelectorAll('.note').forEach(function (n) {
@@ -1547,7 +1697,7 @@ function doComplete(id, el) {
   }).catch(function (e) { if (el) el.style.opacity = 1; fail(e); });
 }
 function reloadBoard() {
-  return call('getBoard').then(function (r) { S.board = r.board; S.sent = r.sent; S.today = r.today; S.reminders = r.reminders || []; renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent(); showReminders(S.reminders); });
+  return call('getBoard').then(function (r) { S.board = r.board; S.sent = r.sent; S.today = r.today; S.reminders = r.reminders || []; renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent(); if (S.tab === 'team') loadOverview(true); if (S.tab === 'member') loadMember(S.mvEmail, true); showReminders(S.reminders); });
 }
 $('boardReload').onclick = function () { reloadBoard().then(function () { toast('更新しました'); }).catch(fail); };
 $('doneBtn').onclick = function () { show('done'); };
@@ -1630,7 +1780,8 @@ function detailModal(t, focusAsk) {
     '<dt>種類</dt><dd>' + (t.kind === 'all' ? '全社' : t.kind === 'team' ? 'チーム' : '個人') + (t.important ? '・重要' : '') + '</dd>' + (t.scope === 'share' ? '<dt>相手</dt><dd>' + people + '</dd>' : '') + '</dl>' +
     historyHtml(t) +
     '<h4 style="margin:14px 0 8px;font-size:13px">質問・返事</h4><div class="thread" id="thread">' + threadHtml(t.comments) + '</div>' +
-    '<div class="ask"><textarea id="askText" placeholder="' + (t.isCreator ? '返事や補足を書く（相手に届きます）' : '質問を書く（' + esc(t.creatorName) + ' さんに届きます）') + '"></textarea><button class="btn primary" id="askSend">送る</button></div></div>' +
+    (canWrite(t) ? '' : '<p class="hint" style="margin:0">見るだけです（質問・返事はタスクの発信者と相手だけが書けます）</p>') +
+    '<div class="ask' + (canWrite(t) ? '' : ' hide') + '"><textarea id="askText" placeholder="' + (t.isCreator ? '返事や補足を書く（相手に届きます）' : '質問を書く（' + esc(t.creatorName) + ' さんに届きます）') + '"></textarea><button class="btn primary" id="askSend">送る</button></div></div>' +
     '<div class="mf">' + (t.isCreator || (S.me && S.me.isAdmin) ? '<button class="btn danger" id="dDel">削除</button><button class="btn" id="dEdit">変更</button>' : '') + (canReset(t) ? '<button class="btn" id="dReset" title="完了した人を0人に戻して、全員のボードにもう一度出す">↺ 完了をリセット</button>' : '') + (t.isCreator && t.scope === 'share' && t.doneCount < t.assignees.length ? '<button class="btn" id="dRemind" title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + '<span class="sp"></span><button class="btn" data-close>閉じる</button>' +
     (t.myStatus === 'open' ? '<button class="btn primary" id="dDone">✓ 完了にする</button>' : t.myStatus === 'done' ? '<button class="btn" id="dReopen">未完了に戻す</button>' : '') + '</div>';
   var bg = modal(html, function (bg) {
@@ -1672,6 +1823,7 @@ function historyHtml(t) {
   }).join('');
   return '<h4 style="margin:14px 0 4px;font-size:13px">履歴（今回と前2回）<span class="hint" style="font-weight:normal">　発信者だけに見えます・遅れ＝前の回で締切に間に合わなかった回数</span></h4><div class="hist"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
 }
+function canWrite(t) { return t.isCreator || (S.me && S.me.isAdmin) || t.assignees.some(function (a) { return S.me && a.email === S.me.email; }); }
 function threadHtml(list) {
   if (!list || !list.length) return '<p class="hint" style="margin:0">まだ書き込みはありません</p>';
   return list.map(function (c) { return '<div class="c' + (c.mine ? ' mine' : '') + (c.wasUnread ? ' new' : '') + '"><small>' + esc(c.name) + ' ・ ' + fmtDt(c.created) + (c.wasUnread ? ' ・ 新着' : '') + '</small>' + esc(c.body) + '</div>'; }).join('');
@@ -1731,6 +1883,97 @@ function doRemind(id, btn) {
   if (btn) btn.disabled = true;
   call('sendReminder', id).then(function (r) { toast(r.count + ' 人にリマインドしました（' + r.names.join('・') + '）'); reloadBoard(); }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
 }
+
+// ---------- 全員の状況（管理者＋選ばれた人だけ） ----------
+var LV = { late: ['遅れあり', 0], behind: ['遅れ気味', 1], heavy: ['多め', 2], help: ['返事待ち', 3], ok: ['順調', 4] };
+S.ovFilter = '';
+function loadOverview(silent) {
+  if (!silent && !S.ov) $('ovBody').innerHTML = '<tr><td colspan="9" class="hint">読み込み中…</td></tr>';
+  return call('getOverview').then(function (r) {
+    S.ov = r; S.today = r.today;
+    var depts = {}; r.list.forEach(function (m) { if (m.title) depts[m.title] = 1; });
+    var cur = $('ovDept').value;
+    $('ovDept').innerHTML = '<option value="">全部署</option>' + Object.keys(depts).sort().map(function (d) { return '<option' + (d === cur ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('');
+    $('ovLateH').textContent = '最近の遅れ'; $('ovLateH').title = '直近 ' + r.lateDays + ' 日で、締切を過ぎてから完了した（または間に合わなかった）回数';
+    renderOverview();
+  }).catch(function (e) { if (!silent) fail(e); });
+}
+function lvWhy(m) {
+  var w = [];
+  if (m.late) w.push('超過: ' + m.lateTasks.slice(0, 2).map(function (t) { return t.title; }).join('・') + (m.lateTasks.length > 2 ? ' ほか' : ''));
+  if (m.level === 'behind') { if (m.soon >= 3) w.push('今日・明日が ' + m.soon + ' 件'); if (m.unseenSoon) w.push('今日締切を ' + m.unseenSoon + ' 件まだ開いていない'); if (m.lateDone >= 2) w.push('最近 ' + m.lateDone + ' 回遅れた'); }
+  if (m.level === 'heavy') w.push('平均（' + S.ov.avgOpen + ' 件・' + S.ov.avgMinutes + ' 分）の1.5倍以上');
+  return w.join('／');
+}
+function renderOverview() {
+  var r = S.ov; if (!r) return;
+  var dept = $('ovDept').value, sort = $('ovSort').value;
+  var all = r.list.filter(function (m) { return !dept || m.title === dept; });
+  var cnt = { late: 0, behind: 0, heavy: 0, help: 0, ok: 0 }; all.forEach(function (m) { cnt[m.level]++; });
+  $('ovSum').innerHTML = ['late', 'behind', 'heavy', 'help', 'ok'].map(function (k) { return '<button class="' + k + (S.ovFilter === k ? ' on' : '') + '" data-f="' + k + '"><b>' + cnt[k] + '</b><span>' + LV[k][0] + '<small> 人</small></span></button>'; }).join('') +
+    '<button data-f=""' + (S.ovFilter ? '' : ' class="on"') + '><b>' + all.length + '</b><span>全員<small> 人</small></span></button>';
+  $('ovSum').querySelectorAll('button').forEach(function (b) { b.onclick = function () { S.ovFilter = S.ovFilter === b.dataset.f ? '' : b.dataset.f; renderOverview(); }; });
+  var list = all.filter(function (m) { return !S.ovFilter || m.level === S.ovFilter; });
+  list.sort(function (a, b) {
+    if (sort === 'open') return b.open - a.open || b.minutes - a.minutes;
+    if (sort === 'minutes') return b.minutes - a.minutes || b.open - a.open;
+    if (sort === 'name') return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    return LV[a.level][1] - LV[b.level][1] || b.late - a.late || b.soon - a.soon || b.open - a.open;
+  });
+  var max = Math.max.apply(null, [1].concat(r.list.map(function (m) { return m.open; })));
+  function n(v, cls, suffix) { return '<td class="n ' + (v ? cls : 'z') + '">' + (v ? v + (suffix ? '<small style="font-family:inherit;font-weight:400">' + suffix + '</small>' : '') : '0') + '</td>'; }
+  $('ovBody').innerHTML = list.map(function (m) {
+    var why = lvWhy(m);
+    return '<tr class="row lv-' + m.level + '" data-e="' + esc(m.email) + '"><td><div class="nm">' + esc(m.name) + '</div><div class="sub">' + esc(m.title || '') + '</div></td>' +
+      '<td><span class="lv ' + m.level + '">' + LV[m.level][0] + '</span>' + (why ? '<div class="ovwhy">' + esc(why) + '</div>' : '') + '</td>' +
+      '<td><div class="kbar"><div class="bar" title="個人 ' + m.self + '・チーム ' + m.team + '・全社 ' + m.all + '"><i class="y" style="width:' + (m.self / max * 100) + '%"></i><i class="g" style="width:' + (m.team / max * 100) + '%"></i><i class="b" style="width:' + (m.all / max * 100) + '%"></i></div><span class="nums"><b>' + m.open + '</b> 件（<span class="y">' + m.self + '</span>・<span class="g">' + m.team + '</span>・<span class="b">' + m.all + '</span>）' + (m.important ? ' <span style="color:#be185d">重要 ' + m.important + '</span>' : '') + '</span></div></td>' +
+      n(m.late, 'bad') + n(m.soon, 'warn') + n(m.unseen, m.unseenSoon ? 'warn' : 'info') + n(m.waiting, 'info') +
+      '<td class="n">' + (m.minutes ? (m.minutes >= 60 ? Math.floor(m.minutes / 60) + '時間' + (m.minutes % 60 ? m.minutes % 60 + '分' : '') : m.minutes + '分') : '<span style="color:#cbd5e1">−</span>') + '</td>' + n(m.lateDone, m.lateDone >= 2 ? 'warn' : '', ' 回') + '</tr>';
+  }).join('');
+  $('ovEmpty').classList.toggle('hide', !!list.length);
+  $('ovBody').querySelectorAll('tr').forEach(function (tr) { tr.onclick = function () { openMember(tr.dataset.e); }; });
+  var lateN = r.list.filter(function (m) { return m.level === 'late'; }).length;
+  $('bdgTeam').textContent = lateN; $('bdgTeam').classList.toggle('hide', !lateN);
+}
+$('ovDept').onchange = renderOverview; $('ovSort').onchange = renderOverview;
+$('ovReload').onclick = function () { loadOverview().then(function () { toast('更新しました'); }); };
+// その人のタスク管理画面（見るだけ）
+function openMember(email) { S.mvEmail = email; S.mv = null; $('mvBoard').innerHTML = '<div class="empty">読み込み中…</div>'; $('mvSent').innerHTML = ''; show('member'); window.scrollTo({ top: 0 }); loadMember(email); }
+function loadMember(email, silent) {
+  return call('getMemberBoard', email).then(function (r) {
+    if (email !== S.mvEmail) return;
+    S.mv = r; var b = r.board;
+    var st = S.ov && S.ov.list.filter(function (m) { return m.email === email; })[0];
+    $('mvName').textContent = r.member.name + ' さん' + (r.member.title ? '（' + r.member.title + '）' : '');
+    $('mvLv').innerHTML = st ? '<span class="lv ' + st.level + '">' + LV[st.level][0] + '</span>' : '';
+    var late = b.filter(function (t) { return dueClass(t) === 'late'; }).length, today = b.filter(function (t) { return dueClass(t) === 'today'; }).length;
+    $('mvSum').textContent = st ? '残り ' + st.open + ' 件（個人 ' + st.self + '・チーム ' + st.team + '・全社 ' + st.all + '）' + (st.waiting ? '・返事待ち ' + st.waiting : '') : '';
+    $('mvHint').textContent = b.length + ' 件' + (late ? '・超過 ' + late : '') + (today ? '・今日 ' + today : '');
+    $('mvBoard').innerHTML = b.length ? b.map(function (t) { return noteHtml(t, true); }).join('') : '<div class="empty">残っているタスクはありません</div>';
+    $('mvBoard').querySelectorAll('.note').forEach(function (n) { n.onclick = function (e) { if (e.target.closest('[data-stop]')) return; openTask(n.dataset.id); }; });
+    $('mvSent').innerHTML = r.sent.map(function (t) {
+      var c = dueClass(t);
+      return '<tr class="row" data-id="' + esc(t.id) + '"><td class="mono" style="white-space:nowrap;' + (c === 'late' && t.status !== 'done' ? 'color:var(--danger)' : '') + '">' + esc(dueLabel(t)) + '</td><td><div class="nm">' + esc(t.title) + '</div></td><td style="font-size:12.5px">' + t.assignees.map(function (a) { return '<span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '">' + esc(a.name) + '</span>'; }).join(' ') + '</td><td class="mono">' + t.doneCount + ' / ' + t.assignees.length + '</td></tr>';
+    }).join('');
+    $('mvSentEmpty').classList.toggle('hide', !!r.sent.length); $('mvSentN').textContent = r.sent.length ? r.sent.length + ' 件' : '';
+    $('mvSent').querySelectorAll('tr').forEach(function (tr) { tr.onclick = function () { openTask(tr.dataset.id); }; });
+  }).catch(function (e) { if (!silent) fail(e); });
+}
+$('mvBack').onclick = function () { show('team'); };
+$('mvReload').onclick = function () { loadMember(S.mvEmail).then(function () { toast('更新しました'); }); };
+// 設定: 全員の状況を見られる人（管理者だけが変えられる）
+function renderViewers() {
+  if (!S.me || !S.me.isAdmin) return;
+  var on = {}; S.viewers.forEach(function (e) { on[e] = 1; });
+  var list = S.members.filter(function (m) { return m.email !== S.me.email; });
+  $('aViewers').innerHTML = list.map(function (m) { return '<label title="' + esc(m.name) + '"><input type="checkbox" data-v="' + esc(m.email) + '"' + (on[m.email] ? ' checked' : '') + '>' + esc(m.name) + '</label>'; }).join('') || '<span class="hint">メンバーがいません</span>';
+  function cnt() { $('aVN').textContent = $('aViewers').querySelectorAll('input:checked').length; }
+  $('aViewers').querySelectorAll('input').forEach(function (c) { c.onchange = cnt; }); cnt();
+}
+$('aViewSave').onclick = function () {
+  var list = [].map.call($('aViewers').querySelectorAll('input:checked'), function (c) { return c.dataset.v; });
+  call('setOverviewViewers', list).then(function (r) { S.viewers = r; renderViewers(); toast('保存しました（' + r.length + ' 人が全員の状況を見られます）'); }).catch(fail);
+};
 
 // ---------- 完了したタスク ----------
 function loadDone() {
@@ -1864,6 +2107,7 @@ function showReminders(list) {
 // ---------- 設定 ----------
 function renderSettings() {
   $('sName').value = S.me.name || ''; $('sTitle').value = S.me.title || '';
+  renderViewers();
   $('aRemind').value = S.settings.remind_minutes; $('aFrom').value = S.settings.cal_from; $('aTo').value = S.settings.cal_to;
 }
 $('sSave').onclick = function () { call('setMyProfile', { name: $('sName').value, title: $('sTitle').value }).then(function (me) { me.isAdmin = S.me.isAdmin; S.me = me; toast('保存しました'); boot(); }).catch(fail); };
