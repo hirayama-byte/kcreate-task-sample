@@ -201,6 +201,10 @@
   .thread .c { background: #f1f5f9; border-radius: 10px; padding: 8px 12px; max-width: 86%; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
   .thread .c.mine { background: var(--accent-weak); align-self: flex-end; }
   .thread .c.new { box-shadow: inset 0 0 0 1px #fca5a5; }
+  .thread .c .cact { display: flex; justify-content: flex-end; gap: 10px; margin-top: 2px; white-space: normal; }
+  .thread .c .cact button { border: 0; background: none; padding: 0; font-size: 11px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  .thread .c .cact button:hover { color: var(--text, #0f172a); }
+  .thread .c textarea { width: 100%; min-height: 60px; font: inherit; white-space: pre-wrap; }
   .thread .c small { display: block; color: var(--muted); font-size: 11px; font-family: var(--mono); margin-bottom: 2px; }
   .ask { display: flex; gap: 8px; align-items: flex-end; } .ask textarea { min-height: 60px; }
   .remind li { margin: 4px 0; line-height: 1.6; } .remind li b { cursor: pointer; color: #0369a1; }
@@ -627,7 +631,7 @@ var TASK_HEAD = ['id', 'title', 'body', 'due', 'due_time', 'minutes', 'link', 'c
 // kind: self（個人）/ team（チーム＝選んだ相手）/ all（全社＝名前登録済みの全員）。important=1 は重要（色はピンクが優先）
 // scope: self（自分用）/ share（社内メンバーに共有）。status: open / done / deleted。due は yyyy-MM-dd の文字・due_time は HH:mm の文字（空でも可）
 var ASSIGN_HEAD = ['task_id', 'email', 'status', 'done_at', 'assigned_at', 'seen_at', 'remind_at', 'remind_seen']; // 共有タスクの担当者ごとの状態。status: open / done。remind_at=発信者がリマインドを押した日時・remind_seen=本人が「確認した」日時
-var COMMENT_HEAD = ['id', 'task_id', 'email', 'body', 'created', 'unread']; // unread = まだ読んでいない人のメール（, 区切り）
+var COMMENT_HEAD = ['id', 'task_id', 'email', 'body', 'created', 'unread', 'edited']; // unread = まだ読んでいない人のメール（, 区切り）
 var HISTORY_HEAD = ['task_id', 'due', 'due_time', 'email', 'seen_at', 'done_at', 'closed_at', 'how']; // 前の回の開封・完了（繰り返しの復活／リセットのときに記録・タスクごとに直近 HISTORY_KEEP 回だけ残す）。how: auto（復活）/ reset（リセットボタン）
 var HISTORY_KEEP = 2;
 var MEMBER_HEAD = ['email', 'name', 'title'];
@@ -654,7 +658,7 @@ var DEFAULT_SETTINGS = [
   ['remind_minutes', '5'],   // 画面を開いている間、何分ごとに確認してポップアップするか
   ['cal_from', '8'], ['cal_to', '20'] // 本日のスケジュールの表示時間帯
 ];
-var DATE_COLS = { tasks: [4, 5, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5], history: [2, 3, 5, 6, 7] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
+var DATE_COLS = { tasks: [4, 5, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5, 7], history: [2, 3, 5, 6, 7] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
 
 function doGet(e) {
   // 権限を足したあと（例: 2026-10-31 カレンダーの書き込み）は、許可が足りない人に「許可する」画面を出す。出さないとカレンダー・メールが「承認が必要です」のままになる
@@ -1340,7 +1344,7 @@ function getTask(id) {
     var unread = String(r[5] || '').split(',').filter(String);
     var wasUnread = unread.indexOf(email) >= 0;
     if (wasUnread) { unread = unread.filter(function (e) { return e !== email; }); csh.getRange(i + 2, 6).setValue(unread.join(',')); r[5] = unread.join(','); }
-    comments.push({ id: String(r[0]), email: String(r[2]).toLowerCase(), name: nameOf_(r[2]), body: String(r[3]), created: str_(r[4]), mine: String(r[2]).toLowerCase() === email, wasUnread: wasUnread });
+    comments.push({ id: String(r[0]), email: String(r[2]).toLowerCase(), name: nameOf_(r[2]), body: String(r[3]), created: str_(r[4]), edited: str_(r[6]), mine: String(r[2]).toLowerCase() === email, wasUnread: wasUnread });
   });
   var o = decorate_(t, email);
   o.comments = comments; o.unread = 0;
@@ -1366,6 +1370,39 @@ function addComment(id, body) {
   delete people[email];
   sheet_('comments').appendRow([newId_('C'), id, email, body, now_(), Object.keys(people).join(',')]);
   bust_('comments');
+  return getTask(id);
+}
+// 自分が書いた質問・返事の編集・削除（書いた本人だけ・2026-11-02）
+function myComment_(cid) {
+  var email = myEmail_(), rows = rows_('comments');
+  for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === String(cid)) {
+    if (String(rows[i][2]).toLowerCase() !== email) throw new Error('自分が書いたものだけ編集・削除できます');
+    return { row: i + 2, r: rows[i], email: email };
+  }
+  throw new Error('その書き込みは見つかりません（削除された可能性があります）');
+}
+// 編集: 本文を直して「編集済み」の時刻を残す。相手にはもう一度「新着」で知らせる
+function editComment(cid, body) {
+  body = String(body || '').trim();
+  if (!body) throw new Error('内容を入力してください');
+  var c = myComment_(cid), id = String(c.r[1]), t = taskRow_(id).t;
+  var people = {}; people[t.creator] = 1; assignsOf_(id).forEach(function (a) { people[a.email] = 1; });
+  delete people[c.email];
+  var sh = sheet_('comments');
+  if (sh.getLastColumn() < COMMENT_HEAD.length) { sh.getRange(1, 1, 1, COMMENT_HEAD.length).setValues([COMMENT_HEAD]); sh.getRange(1, 7, Math.max(sh.getMaxRows(), 1), 1).setNumberFormat('@'); } // 後から足した列（edited）
+  sh.getRange(c.row, 4).setValue(body);
+  sh.getRange(c.row, 6, 1, 2).setValues([[Object.keys(people).join(','), now_()]]);
+  bust_('comments');
+  return getTask(id);
+}
+function deleteComment(cid) {
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    memo_ = {}; // 待っている間に他の人が書いたかもしれないので読み直す（行番号がずれないように）
+    var c = myComment_(cid), id = String(c.r[1]);
+    sheet_('comments').deleteRow(c.row);
+    bust_('comments');
+  } finally { lock.releaseLock(); }
   return getTask(id);
 }
 
@@ -1874,6 +1911,29 @@ function detailModal(t, focusAsk, into) {
       if (!v.trim()) { toast('内容を入力してください', true); return; }
       call('addComment', t.id, v).then(function (r) { bg.querySelector('#askText').value = ''; th.innerHTML = threadHtml(r.comments); th.scrollTop = th.scrollHeight; [S.board, S.sent].forEach(function (list) { list.forEach(function (x) { if (x.id === t.id) x.comments = r.comments.length; }); }); renderBoard(); toast(t.isCreator ? '相手に送りました' : t.creatorName + ' さんに送りました'); }).catch(fail);
     };
+    // 自分の質問・返事の編集・削除（2026-11-02）
+    function setThread(r) { th.innerHTML = threadHtml(r.comments); [S.board, S.sent].forEach(function (list) { list.forEach(function (x) { if (x.id === t.id) x.comments = r.comments.length; }); }); renderBoard(); if (S.tab === 'sent') renderSent(); }
+    th.addEventListener('click', function (ev) {
+      var box = ev.target.closest('.c[data-cid]'); if (!box) return;
+      var cid = box.dataset.cid;
+      if (ev.target.closest('[data-cedit]')) {
+        var cur = box.querySelector('.cb').textContent;
+        box.querySelector('.cb').innerHTML = '<textarea>' + esc(cur) + '</textarea>';
+        box.querySelector('.cact').innerHTML = '<button data-cno>やめる</button><button data-cok style="color:var(--accent);font-weight:700">保存</button>';
+        var ta = box.querySelector('textarea'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+      } else if (ev.target.closest('[data-cno]')) {
+        call('getTask', t.id).then(setThread).catch(fail);
+      } else if (ev.target.closest('[data-cok]')) {
+        var v = box.querySelector('textarea').value;
+        if (!v.trim()) { toast('内容を入力してください（消すときは「削除」）', true); return; }
+        ev.target.disabled = true;
+        call('editComment', cid, v).then(function (r) { setThread(r); toast('直しました（相手に新着で知らせます）'); }).catch(function (e) { ev.target.disabled = false; fail(e); });
+      } else if (ev.target.closest('[data-cdel]')) {
+        modal('<div class="mh"><h3>この書き込みを削除しますか？</h3></div><div class="mb"><div class="body" style="white-space:pre-wrap;max-height:120px;overflow:auto">' + esc(box.querySelector('.cb').textContent) + '</div></div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn danger" id="cDelYes">削除する</button></div>', function (b2) {
+          b2.querySelector('#cDelYes').onclick = function () { call('deleteComment', cid).then(function (r) { b2.remove(); setThread(r); toast('削除しました'); }).catch(function (e) { b2.remove(); fail(e); }); };
+        });
+      }
+    });
     var d = bg.querySelector('#dDone'); if (d) d.onclick = function () { bg.remove(); doComplete(t.id); };
     var r = bg.querySelector('#dReopen'); if (r) r.onclick = function () { call('reopenTask', t.id).then(function () { bg.remove(); toast('未完了に戻しました'); reloadBoard(); if (S.tab === 'done') loadDone(); }).catch(fail); };
     var e = bg.querySelector('#dEdit'); if (e) e.onclick = function () { bg.remove(); editModal(t); };
@@ -1910,7 +1970,7 @@ function othersOpen(t) { return t.assignees.some(function (a) { return a.email !
 function canWrite(t) { return t.isCreator || (S.me && S.me.isAdmin) || t.assignees.some(function (a) { return S.me && a.email === S.me.email; }); }
 function threadHtml(list) {
   if (!list || !list.length) return '<p class="hint" style="margin:0">まだ書き込みはありません</p>';
-  return list.map(function (c) { return '<div class="c' + (c.mine ? ' mine' : '') + (c.wasUnread ? ' new' : '') + '"><small>' + esc(c.name) + ' ・ ' + fmtDt(c.created) + (c.wasUnread ? ' ・ 新着' : '') + '</small>' + esc(c.body) + '</div>'; }).join('');
+  return list.map(function (c) { return '<div class="c' + (c.mine ? ' mine' : '') + (c.wasUnread ? ' new' : '') + '" data-cid="' + esc(c.id) + '"><small>' + esc(c.name) + ' ・ ' + fmtDt(c.created) + (c.edited ? ' ・ 編集済み' : '') + (c.wasUnread ? ' ・ 新着' : '') + '</small><span class="cb">' + esc(c.body) + '</span>' + (c.mine ? '<span class="cact"><button data-cedit>編集</button><button data-cdel>削除</button></span>' : '') + '</div>'; }).join('');
 }
 function editModal(t) {
   var others = S.members.filter(function (m) { return m.email !== t.creator; });
