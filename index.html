@@ -250,7 +250,7 @@
   #createCard .field label { margin-bottom: 2px; font-size: 11.5px; }
   #createCard input:not([type=checkbox]), #createCard .seg button { height: 32px; }
   #createCard textarea { padding: 6px 10px; line-height: 1.5; }
-  #createCard .checks { max-height: 120px; }
+  #createCard .checks { max-height: none; height: 120px; min-height: 60px; resize: vertical; align-content: start; } /* 内容の枠と同じく、右下をつまんで縦に広げられる（2026-11-02） */
   .mcreate { display: none; }
   /* スマホ: 上のバー（タスク管理＋タスクの作成＋メニュー）を固定し、下はタスク一覧→作成画面を縦スクロールだけで見る。カレンダー・Gmail・リンク集は出さない */
   @media (max-width: 900px) {
@@ -287,6 +287,7 @@
       <button data-tab="team" class="hide" id="teamTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span class="lg">全員の状況</span><span class="st">全員</span><span class="bdg hide" id="bdgTeam" title="遅れのある人"></span></button>
       <button data-tab="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span class="lg">完了したタスク</span><span class="st">完了</span></button>
       <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>設定</button>
+      <button id="guideBtn" title="使い方ガイドを新しいタブで開く"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span class="lg">使い方</span><span class="st">？</span></button>
     </nav>
     <div class="spacer"></div>
     <div id="linksWrap"><div class="side-sec">リンク集<button id="linksEdit" class="hide" title="リンク集を編集">編集</button></div><div id="links"></div></div>
@@ -1689,6 +1690,9 @@ function show(tab) {
   if (tab === 'settings') renderSettings();
 }
 document.querySelectorAll('#tabs button').forEach(function (b) { b.onclick = function () { show(b.dataset.tab); }; });
+// 使い方ガイド（サンプル版と同じ場所・架空データの画面写真入り）
+var GUIDE_URL = 'https://hirayama-byte.github.io/kcreate-task-sample/guide/';
+$('guideBtn').onclick = function () { window.open(GUIDE_URL, '_blank', 'noopener'); };
 $('brand').onclick = function () { show('dash'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 // スマホ: 上のボタンで一番下の作成画面へ
 $('mCreate').onclick = function () { show('dash'); setTimeout(function () { $('createCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(function () { $('cTitle').focus({ preventScroll: true }); }, 400); }, 50); };

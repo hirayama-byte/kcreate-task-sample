@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>タスク管理 使い方ガイド</title>
+<style>
+  :root { --text: #0f172a; --muted: #475569; --faint: #94a3b8; --line: #e2e8f0; --bg: #f8fafc; --card: #fff; --accent: #0d9488; --accent-weak: #f0fdfa; --warn: #fef3c7; --warn-text: #92400e; --side: #0f172a; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif; font-size: 15.5px; line-height: 1.85; -webkit-text-size-adjust: 100%; }
+  a { color: var(--accent); }
+  header.top { background: var(--side); color: #fff; padding: 28px 16px 26px; }
+  header.top .in { max-width: 1120px; margin: 0 auto; }
+  header.top h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: .02em; }
+  header.top p { margin: 0; color: #cbd5e1; font-size: 14.5px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 60px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; align-items: start; }
+  nav.toc { position: sticky; top: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px; max-height: calc(100vh - 32px); overflow: auto; }
+  nav.toc b { display: block; font-size: 12px; color: var(--muted); padding: 0 8px 6px; letter-spacing: .05em; }
+  nav.toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.5; }
+  nav.toc a:hover { background: var(--accent-weak); color: var(--accent); }
+  nav.toc a small { color: var(--faint); font-size: 11px; margin-left: 4px; }
+  main { min-width: 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px 26px; margin-bottom: 22px; }
+  h2 { margin: 0 0 14px; font-size: 21px; padding-bottom: 10px; border-bottom: 2px solid var(--accent-weak); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  h2 .no { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 15px; flex: none; }
+  h3 { margin: 22px 0 8px; font-size: 17px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 14px; padding-left: 1.4em; }
+  li { margin-bottom: 4px; }
+  figure { margin: 14px 0 20px; }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+  figure.s img { max-width: 420px; }
+  figure.m img { max-width: 620px; }
+  figure.xs img { max-width: 280px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .pair { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .pair figure { flex: 1 1 260px; margin-top: 6px; }
+  .note { background: var(--accent-weak); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 12px 0 16px; font-size: 14.5px; }
+  .warn { background: var(--warn); border-left: 4px solid #f59e0b; color: var(--warn-text); border-radius: 8px; padding: 10px 14px; margin: 12px 0 16px; font-size: 14.5px; }
+  .admin { display: inline-block; font-size: 12px; font-weight: 700; color: #7c2d12; background: #ffedd5; border: 1px solid #fdba74; border-radius: 999px; padding: 1px 10px; line-height: 1.7; }
+  .key { display: inline-block; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 6px; padding: 0 7px; font-size: 13px; background: #fff; line-height: 1.6; white-space: nowrap; }
+  table { border-collapse: collapse; width: 100%; margin: 6px 0 16px; font-size: 14.5px; }
+  th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; font-weight: 700; white-space: nowrap; }
+  .tbl { overflow-x: auto; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(0,0,0,.08); }
+  .faq dt { font-weight: 700; margin-top: 14px; }
+  .faq dt::before { content: "Q. "; color: var(--accent); }
+  .faq dd { margin: 4px 0 0; padding-left: 1.6em; }
+  .back { display: inline-block; margin-top: 4px; font-size: 13px; }
+  footer { text-align: center; color: var(--faint); font-size: 12.5px; padding: 10px 16px 30px; }
+  @media (max-width: 860px) {
+    .wrap { grid-template-columns: minmax(0, 1fr); gap: 16px; padding-top: 16px; }
+    nav.toc { position: static; max-height: none; columns: 2; column-gap: 8px; }
+    nav.toc b { column-span: all; }
+    nav.toc a { break-inside: avoid; }
+    section { padding: 18px 16px; border-radius: 12px; }
+    header.top h1 { font-size: 22px; }
+    h2 { font-size: 19px; }
+    body { font-size: 15px; }
+  }
+  @media (max-width: 420px) { nav.toc { columns: 1; } }
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <h1>タスク管理 使い方ガイド</h1>
+  <p>株式会社 ケイ・クリエイト 社内向け。画面の写真はサンプル（架空のデータ）です。</p>
+</div></header>
+
+<div class="wrap">
+<nav class="toc" aria-label="目次">
+  <b>目次</b>
+  <a href="#start">1. はじめに</a>
+  <a href="#screen">2. 画面の見方</a>
+  <a href="#create">3. タスクを作る</a>
+  <a href="#note">4. 付箋の色と見方</a>
+  <a href="#done">5. 完了する・戻す</a>
+  <a href="#comment">6. 質問・返事</a>
+  <a href="#sent">7. 発信したタスク</a>
+  <a href="#repeat">8. 繰り返し</a>
+  <a href="#history">9. 完了したタスク</a>
+  <a href="#calendar">10. スケジュールとGmail</a>
+  <a href="#links">11. リンク集</a>
+  <a href="#team">12. 全員の状況<small>管理者ほか</small></a>
+  <a href="#mobile">13. スマホで使う</a>
+  <a href="#admin">14. 管理者の設定<small>管理者</small></a>
+  <a href="#faq">15. よくある質問</a>
+</nav>
+
+<main>
+
+<section id="start">
+  <h2><span class="no">1</span>はじめに</h2>
+  <p>タスク管理は、自分のやること・人に頼んだこと・人から頼まれたことを、付箋のように1枚ずつ並べて管理する社内サイトです。会社の Google アカウントで開いてください。</p>
+  <h3>初めて開いたとき：許可する</h3>
+  <ol>
+    <li>Google の「許可」を求める画面が出たら、自分の会社アカウントを選び、内容を確認して <b>「許可」</b> を押してください。</li>
+    <li>「タスク管理：許可の追加」という画面が出たときも、同じように許可してください（機能が増えたときに出ます）。</li>
+    <li>スケジュールや Gmail の欄に「許可の追加が必要です」と出たら、その中の <b>「許可する」</b> ボタンを押してください。</li>
+  </ol>
+  <p>許可するのは、タスクを保存する表・自分のメールアドレス・自分のカレンダー（予定の表示と追加）・自分の Gmail の未読（読むだけ）です。</p>
+  <h3>名前の登録</h3>
+  <p>名前は社内スタッフ名簿から自動で登録されています。登録されていない人には、最初に「はじめに、名前を登録してください」と出ますので、フルネームを入れて保存してください。名前はタスクの「発信者」や「相手」として表示されます。</p>
+  <p>あとから直すときは、左下の自分の名前（「変更」）か、メニューの <b>設定</b> → 「自分の設定」で変えられます。</p>
+  <figure class="m"><img src="img/17-settings.png" alt="自分の設定（名前・部署）" loading="lazy" width="640" height="255"><figcaption>設定 → 自分の設定</figcaption></figure>
+</section>
+
+<section id="screen">
+  <h2><span class="no">2</span>画面の見方</h2>
+  <figure><img src="img/01-board.png" alt="タスク管理の画面全体" loading="lazy" width="1440" height="900"><figcaption>パソコンの画面（ダッシュボード）</figcaption></figure>
+  <ul>
+    <li><b>左のメニュー</b>：発信したタスク／全員の状況（見られる人だけ）／完了したタスク／設定／使い方。下に「リンク集」と自分の名前があります。</li>
+    <li><b>タスク管理一覧</b>（中央）：今やるタスクが付箋で並びます。締切が近い順です（締切なしは最後）。</li>
+    <li><b>タスクの作成</b>（右）：新しいタスクを作ります。</li>
+    <li><b>本日のスケジュール</b>（右端）と <b>Gmail の新着</b>（下）：自分のカレンダーと未読メールです。</li>
+  </ul>
+  <p>左上の「タスク管理」を押すと、いつでもこの画面に戻れます。画面を開いている間は、数分ごと（初期は5分）に自動で新しい内容に更新されます。すぐ更新したいときは一覧の右上の <span class="key">⟳</span> を押してください。</p>
+</section>
+
+<section id="create">
+  <h2><span class="no">3</span>タスクを作る</h2>
+  <div class="pair">
+    <figure class="s"><img src="img/04-create-self.png" alt="タスクの作成（個人）" loading="lazy" width="280" height="537"><figcaption>個人のタスク</figcaption></figure>
+    <figure class="s"><img src="img/05-create-team.png" alt="タスクの作成（チーム・相手を選ぶ）" loading="lazy" width="280" height="787"><figcaption>チーム：相手にチェック</figcaption></figure>
+  </div>
+  <h3>入れる内容</h3>
+  <table>
+    <tr><th>見出し</th><td>必ず入れます。付箋には1行で表示されます。</td></tr>
+    <tr><th>内容</th><td>やることの説明です（任意）。付箋には3行まで表示されます。</td></tr>
+    <tr><th>締切・時刻</th><td>締切の日付と、必要なら時刻を入れます。締切なしでも作れます。</td></tr>
+    <tr><th>所要時間（分）</th><td>どれくらいかかるかの目安です。▲▼ を押すと <b>1 → 2 → 3 → 5 → 10 → 15 → 20 …</b>（5分から先は5分ずつ）と変わります。キーボードで数字を打つことももちろんできます。</td></tr>
+    <tr><th>重要</th><td>チェックすると付箋がピンクになります。</td></tr>
+    <tr><th>リンク</th><td>関係する資料（Drive など）の URL です。付箋に「リンク🔗」ボタンが出ます。<code>http://</code> か <code>https://</code> で始めてください。</td></tr>
+    <tr><th>繰り返し</th><td>毎週・毎月など、定期的なタスクにするとき使います（<a href="#repeat">8. 繰り返し</a>）。</td></tr>
+  </table>
+  <h3>誰のタスク？（個人・チーム・全社）</h3>
+  <ul>
+    <li><b>個人</b>：自分だけのタスクです。</li>
+    <li><b>チーム</b>：「共有する相手」で、頼みたい人にチェックを入れます。</li>
+    <li><b>全社</b>：全員にチェックが入った状態になります。外したい人だけチェックを外してください。</li>
+  </ul>
+  <div class="note">チーム・全社のタスクは、<b>作った人（自分）も必ず対象</b>になり、自分のボードにも付箋が出ます。自分の分も「完了」してください。</div>
+  <p>相手の一覧が見づらいときは、一覧の枠の <b>右下の角をつまんで下に引っぱる</b> と広げられます（内容の欄と同じです）。「全員」「解除」でまとめて選んだり外したりできます。</p>
+  <p>最後に <b>「タスクを作成」</b> を押すと、自分と相手のボードに付箋が出ます。</p>
+</section>
+
+<section id="note">
+  <h2><span class="no">4</span>付箋の色と見方</h2>
+  <figure class="m"><img src="img/03b-board-card.png" alt="付箋が並んだタスク管理一覧" loading="lazy" width="618" height="620"></figure>
+  <h3>色は種類で決まります</h3>
+  <table>
+    <tr><th>色</th><th>種類</th></tr>
+    <tr><td><span class="sw" style="background:#fefce8"></span>黄</td><td>個人のタスク</td></tr>
+    <tr><td><span class="sw" style="background:#fce7f3"></span>ピンク</td><td>重要（どの種類でも重要にするとピンク）</td></tr>
+    <tr><td><span class="sw" style="background:#ecfccb"></span>黄緑</td><td>チームのタスク</td></tr>
+    <tr><td><span class="sw" style="background:#e0f2fe"></span>水色</td><td>全社のタスク</td></tr>
+  </table>
+  <div class="pair">
+    <figure class="xs"><img src="img/03-note.png" alt="付箋1枚" loading="lazy" width="142" height="202"></figure>
+    <div style="flex:1 1 280px">
+      <h3 style="margin-top:6px">付箋に書いてあること</h3>
+      <ul>
+        <li><b>見出し・内容</b></li>
+        <li><b>📅 締切</b>：締切を過ぎると <b style="color:#dc2626">赤字と ⚠</b>、今日が締切だとオレンジ色になります。🔁 は繰り返しのタスクです。</li>
+        <li><b>⏱ 所要時間</b>：5分以内のものは赤で表示されます。</li>
+        <li><b>発信者</b>：「個人」「自分が発信」「自分が全社に発信」「発信: ○○」のように出ます。人に頼んだタスクは「1/5 完了」のように進み具合も出ます。</li>
+        <li><b>💬</b>：質問・返事。赤い数字は未読の数です。</li>
+        <li><b>リンク🔗</b>：資料を新しいタブで開きます。</li>
+        <li><b>✓ 完了</b>：終わったら押します。</li>
+      </ul>
+    </div>
+  </div>
+  <p>付箋を押すと詳細（内容の全文・相手ごとの状態・質問と返事）が開きます。</p>
+</section>
+
+<section id="done">
+  <h2><span class="no">5</span>完了する・戻す</h2>
+  <ul>
+    <li>付箋の <b>「✓ 完了」</b> か、詳細の <b>「✓ 完了にする」</b> を押すと、付箋がボードから消えて「完了したタスク」に入ります。</li>
+    <li>チーム・全社のタスクは、<b>自分の分だけ</b> 完了になります。発信した人には誰がいつ完了したかが伝わります。全員が完了するとタスク全体が完了です。</li>
+    <li>間違えて完了したときは、<a href="#history">完了したタスク</a> の「戻す」か、詳細の「未完了に戻す」で元に戻せます。</li>
+  </ul>
+</section>
+
+<section id="comment">
+  <h2><span class="no">6</span>質問・返事</h2>
+  <p>タスクについての質問や連絡は、詳細の下の「質問・返事」に書いて <b>「送る」</b> を押します。発信者と相手（自分以外）に届き、相手の付箋の 💬 に赤い数字（未読）が付きます。左のメニューのバッジでも未読の数が分かります。</p>
+  <figure class="m"><img src="img/07b-detail-assigned.png" alt="頼まれたタスクの詳細と質問欄" loading="lazy" width="600" height="566"><figcaption>人から頼まれたタスクの詳細。質問はその発信者に届きます</figcaption></figure>
+  <h3>書いた質問を直す・消す</h3>
+  <p>自分が書いた書き込みの下にだけ、小さく <b>「編集」「削除」</b> が出ます。</p>
+  <ul>
+    <li><b>編集</b>：その場で書き直して「保存」。「やめる」で元のままです。直すと「編集済み」と表示され、相手にはもう一度「新着」で知らせます。</li>
+    <li><b>削除</b>：確認画面で「削除する」を押すと消えます。元に戻せません。ほかの人の返事は残ります。</li>
+  </ul>
+  <figure class="m"><img src="img/07-detail.png" alt="自分の書き込みに編集・削除" loading="lazy" width="600" height="638"><figcaption>自分の書き込みの右下に「編集」「削除」</figcaption></figure>
+  <p>ほかの人の書き込みは直せません。質問・返事を書けるのは、そのタスクの発信者と相手です。</p>
+</section>
+
+<section id="sent">
+  <h2><span class="no">7</span>発信したタスク</h2>
+  <p>左のメニューの <b>「発信したタスク」</b> に、自分が人に頼んだタスク（まだ全員が終わっていないもの）が並びます。</p>
+  <figure><img src="img/08b-sent-repeat.png" alt="発信したタスクの一覧" loading="lazy" width="1172" height="567"></figure>
+  <ul>
+    <li><b>相手</b>：名前の色で、完了（緑）／未対応（黄）が分かります。名前にマウスを当てると「まだ開いていない」なども分かります。</li>
+    <li><b>進み具合</b>：完了した人数／全体の人数です。</li>
+    <li><b>質問</b>：相手から返事・質問が来ていると「返事待ち」と出ます。</li>
+  </ul>
+  <h3>詳細でできること</h3>
+  <figure class="m"><img src="img/09-sent-detail.png" alt="発信者が見る詳細" loading="lazy" width="600" height="688"><figcaption>相手ごとに「完了」「確認済・未対応（開いたがまだ）」「未対応（まだ開いていない）」が分かります</figcaption></figure>
+  <figure class="m"><img src="img/10-buttons.png" alt="詳細の下のボタン" loading="lazy" width="600" height="106"></figure>
+  <table>
+    <tr><th>🔔 リマインド</th><td>押したときだけ、まだ完了していない相手に「リマインド」のお知らせが画面に出ます（自分には出ません）。相手が「確認した」を押したかどうかも詳細で分かります。</td></tr>
+    <tr><th>↺ 完了をリセット</th><td>完了した人を0人に戻して、全員のボードにもう一度出します。</td></tr>
+    <tr><th>変更</th><td>見出し・内容・締切・所要時間・リンク・重要・繰り返しを直せます。相手を <b>足す</b> こともできます（外すことはできません）。</td></tr>
+    <tr><th>⧉ 複製</th><td>同じ内容で新しいタスクを作ります。右の「タスクの作成」欄に見出し・内容・締切・相手・繰り返しなどが入るので、直して「タスクを作成」を押してください。元のタスクはそのままです。締切が過ぎていたときは締切が空になるので、入れ直してください。</td></tr>
+    <tr><th>削除</th><td>確認のあと削除します。相手のボードからも消えます。</td></tr>
+  </table>
+  <p>リマインドを受け取った側には、次のようなお知らせが出ます。見出しを押すとそのタスクが開きます。</p>
+  <figure class="m"><img src="img/02-reminder.png" alt="リマインドのお知らせ" loading="lazy" width="600" height="178"></figure>
+</section>
+
+<section id="repeat">
+  <h2><span class="no">8</span>繰り返し</h2>
+  <p>週報や月次の報告など、決まった周期のタスクは「繰り返し」を使うと、毎回作り直さなくて済みます。<b>締切の日付が基準</b> になるので、締切は必ず入れてください。</p>
+  <table>
+    <tr><th>繰り返し</th><th>次の締切</th></tr>
+    <tr><td>毎週</td><td>締切と同じ曜日（1週間後）</td></tr>
+    <tr><td>隔週</td><td>締切と同じ曜日（2週間後）</td></tr>
+    <tr><td>毎月（同じ日）</td><td>締切と同じ日にち（その日がない月は月末）</td></tr>
+    <tr><td>毎月 月末</td><td>次の月の月末</td></tr>
+    <tr><td>毎月 第◯ ◯曜日</td><td>締切の日から決まります。例：締切が第2火曜なら、毎月の第2火曜</td></tr>
+    <tr><td>毎月 最後の◯曜日</td><td>締切をその月の最後の◯曜日にします。例：毎月 最後の金曜</td></tr>
+  </table>
+  <figure class="s"><img src="img/06-repeat.png" alt="繰り返しの設定と見本" loading="lazy" width="280" height="266"><figcaption>選ぶと、次の締切・次の復活日が見本で出ます</figcaption></figure>
+  <ul>
+    <li><b>復活する日</b>：次の締切の「当日」「◯日前」「◯週間前」の <b>朝8時</b> に、全員の完了が外れてもう一度ボードに出ます。</li>
+    <li>全員が完了しても、発信したタスクの一覧には「次の復活」の日時とともに残ります。</li>
+    <li>締切が第5週の日（例：第5金曜）は毎月はないので、「毎月 最後の◯曜日」を選んでください（画面にも案内が出ます）。</li>
+    <li>繰り返しをやめるときは、詳細の「変更」で「しない」にします。</li>
+  </ul>
+  <h3>履歴（発信者だけに見えます）</h3>
+  <p>繰り返しのタスクは、詳細に <b>今回と前2回</b> の「開封」「完了」の日時が人ごとに出ます。締切に間に合わなかった回は赤くなり、「遅れ」に回数が出ます。</p>
+  <figure class="m"><img src="img/11-history.png" alt="繰り返しのタスクの履歴" loading="lazy" width="600" height="828"></figure>
+</section>
+
+<section id="history">
+  <h2><span class="no">9</span>完了したタスク</h2>
+  <p>左のメニューの <b>「完了したタスク」</b>（またはボードの右上のボタン）で、自分が完了したタスクを新しい順に見返せます。右上で月を選ぶと、その月の分だけになります（「すべて」で元に戻ります）。</p>
+  <figure><img src="img/12-done.png" alt="完了したタスク" loading="lazy" width="1172" height="263"></figure>
+  <ul>
+    <li><b>自分用</b>：個人のタスク／<b>共有（自分の分）</b>：人から頼まれて自分の分を完了したもの／<b>発信（全員完了）</b>：自分が頼んで全員が終わったもの</li>
+    <li>「戻す」を押すと未完了に戻り、ボードにまた出ます。</li>
+  </ul>
+</section>
+
+<section id="calendar">
+  <h2><span class="no">10</span>本日のスケジュールと Gmail の新着</h2>
+  <div class="pair">
+    <figure class="xs"><img src="img/14-calendar.png" alt="本日のスケジュール" loading="lazy" width="250" height="872"></figure>
+    <div style="flex:1 1 300px">
+      <p><b>本日のスケジュール</b> には、<b>自分の Google カレンダー</b> の予定が出ます。<span class="key">‹</span> <span class="key">›</span> で前後の日、「今日」で今日に戻ります。</p>
+      <ul>
+        <li><b>予定を追加</b>：「＋予定」を押すか、時間の空いているところを押します。</li>
+        <li><b>予定を直す・消す</b>：自分が作った予定を押すと編集画面が開きます。</li>
+        <li><b>↗ が付いた予定</b>（人から招待された予定・繰り返しの予定）は、ここでは直せません。押すと Google カレンダーが開くので、そちらで直してください。</li>
+      </ul>
+      <figure class="m"><img src="img/14b-event.png" alt="予定の追加" loading="lazy" width="600" height="556"><figcaption>予定はあなたの Google カレンダーに保存されます</figcaption></figure>
+    </div>
+  </div>
+  <p><b>Gmail の新着</b> には、自分の受信トレイの <b>未読</b> メールが新しい順に出ます。行を押すと Gmail でそのメールが開きます。ここから返信や既読にはできません（見るだけ）。</p>
+  <figure><img src="img/15-mail.png" alt="Gmail の新着" loading="lazy" width="910" height="241"></figure>
+</section>
+
+<section id="links">
+  <h2><span class="no">11</span>リンク集</h2>
+  <div class="pair">
+    <figure class="xs"><img src="img/16-links.png" alt="リンク集" loading="lazy" width="232" height="346"></figure>
+    <div style="flex:1 1 280px">
+      <p>左下の <b>リンク集</b> から、QR管理・見積作成・一斉DM などのよく使うサイトやフォルダを新しいタブで開けます。</p>
+      <p>リンク集の中身は管理者が「編集」で変えられます。 <span class="admin">管理者</span></p>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <h2><span class="no">12</span>全員の状況 <span class="admin">管理者と、管理者が選んだ人だけ</span></h2>
+  <p>左のメニューの <b>「全員の状況」</b> で、全員の残っているタスク・遅れ・偏りが一覧で見られます。このメニューは、管理者と、管理者が設定で選んだ人にだけ表示されます。</p>
+  <figure><img src="img/13-overview.png" alt="全員の状況" loading="lazy" width="1172" height="739"></figure>
+  <table>
+    <tr><th>遅れあり</th><td>締切を過ぎた未完了がある</td></tr>
+    <tr><th>遅れ気味</th><td>今日・明日の締切が3件以上／今日が締切なのにまだ開いていない／最近の遅れが2回以上</td></tr>
+    <tr><th>多め</th><td>残りの件数か所要時間が、全員の平均の1.5倍以上</td></tr>
+    <tr><th>返事待ち</th><td>本人が書いた質問に、まだ返事がない</td></tr>
+  </table>
+  <p>上の数字のボタンで状態ごとに絞れます。部署と並べ方も選べます。行を押すと、その人のボードが <b>見るだけ</b> で開きます（完了や書き込みはできません）。</p>
+</section>
+
+<section id="mobile">
+  <h2><span class="no">13</span>スマホで使う</h2>
+  <div class="pair">
+    <figure class="xs"><img src="img/18-mobile.png" alt="スマホのタスク一覧" loading="lazy" width="390" height="844"><figcaption>タスク一覧</figcaption></figure>
+    <figure class="xs"><img src="img/19-mobile-create.png" alt="スマホのタスクの作成" loading="lazy" width="390" height="844"><figcaption>下にタスクの作成</figcaption></figure>
+  </div>
+  <ul>
+    <li>スマホでは、<b>タスク一覧</b> と <b>タスクの作成</b> だけを縦に並べて表示します（スケジュール・Gmail・リンク集は出ません）。</li>
+    <li>上の <b>「＋ タスクの作成」</b> を押すと、下の作成欄に移動します。</li>
+    <li>上のメニュー（発信・全員・完了・設定・？）は、パソコンの左のメニューと同じです。</li>
+  </ul>
+</section>
+
+<section id="admin">
+  <h2><span class="no">14</span>管理者の設定 <span class="admin">管理者だけ</span></h2>
+  <p>管理者は、どのタスクでも変更・削除・複製・リセットができます。メニューの <b>設定</b> に「管理者の設定」が出ます。</p>
+  <ul>
+    <li><b>自動更新の間隔（分）</b>：画面を開いている間に、何分ごとに新しい内容を読み込むか（リマインドのお知らせもこの間隔で出ます）。</li>
+    <li><b>スケジュールの表示時間</b>：本日のスケジュールに出す時間帯（開始〜終了）。</li>
+    <li><b>メンバーの名前を代理で登録</b>：まだ使っていない人の名前を先に登録できます。</li>
+    <li><b>「全員の状況」を見られる人</b>：チェックした人も全員の状況を見られるようになります。</li>
+  </ul>
+  <p>社内スタッフ名簿を直したあとに名前を取り込み直すときは、管理者がタスク管理の URL の最後に <code>?setup=staff</code> を付けて開いてください。</p>
+</section>
+
+<section id="faq">
+  <h2><span class="no">15</span>よくある質問</h2>
+  <dl class="faq">
+    <dt>「許可」を求める画面が出ました。</dt>
+    <dd>機能が増えたときなどに出ます。自分の会社アカウントで「許可」してください。スケジュールや Gmail の欄の「許可する」ボタンからも許可できます。</dd>
+    <dt>新しい機能が見当たりません／表示が古いままです。</dt>
+    <dd>ブラウザでページを再読み込み（<span class="key">F5</span> など）してください。開いたままの画面には、新しい機能は入りません。タスクの一覧だけなら <span class="key">⟳</span> でも更新できます。</dd>
+    <dt>自分の名前が違う・名字だけになっています。</dt>
+    <dd>左下の自分の名前（「変更」）か、設定 → 自分の設定で直してください。</dd>
+    <dt>チームのタスクを作ったら、自分のボードにも出てきました。</dt>
+    <dd>チーム・全社のタスクは作った人も必ず対象になります。自分の分が終わったら「完了」してください。</dd>
+    <dt>頼まれたタスクを「完了」したのに、発信した人の画面ではまだ残っています。</dt>
+    <dd>チーム・全社のタスクは、全員が完了するまで発信者の「発信したタスク」に残ります。誰が終わったかは名前の色で分かります。</dd>
+    <dt>付箋に赤い数字が付いています。</dt>
+    <dd>まだ読んでいない質問・返事の数です。付箋を開くと既読になります。</dd>
+    <dt>リマインドのお知らせが出ました。</dt>
+    <dd>発信した人が「🔔 リマインド」を押したタスクです。見出しを押すと開きます。「確認した」を押すと、発信者に「確認済」と伝わります。</dd>
+    <dt>カレンダーの予定を押したら Google カレンダーが開きました。</dt>
+    <dd>人から招待された予定と繰り返しの予定（↗ が付いたもの）は、ここでは直せないため Google カレンダーで開きます。</dd>
+    <dt>間違えてタスクを削除しました。</dt>
+    <dd>削除したタスクは画面からは戻せません。管理者に相談してください。</dd>
+  </dl>
+</section>
+
+</main>
+</div>
+<footer>タスク管理 使い方ガイド ・ 株式会社 ケイ・クリエイト</footer>
+</body>
+</html>
