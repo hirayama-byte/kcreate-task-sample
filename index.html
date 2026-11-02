@@ -250,7 +250,7 @@
   #createCard .field label { margin-bottom: 2px; font-size: 11.5px; }
   #createCard input:not([type=checkbox]), #createCard .seg button { height: 32px; }
   #createCard textarea { padding: 6px 10px; line-height: 1.5; }
-  #createCard .checks { max-height: none; height: 120px; min-height: 60px; resize: vertical; align-content: start; } /* 内容の枠と同じく、右下をつまんで縦に広げられる（2026-11-02） */
+  #createCard .checks { max-height: none; height: 120px; min-height: 60px; resize: vertical; align-content: start; grid-auto-rows: max-content; } /* 内容の枠と同じく、右下をつまんで縦に広げられる（2026-11-02） */
   .mcreate { display: none; }
   /* スマホ: 上のバー（タスク管理＋タスクの作成＋メニュー）を固定し、下はタスク一覧→作成画面を縦スクロールだけで見る。カレンダー・Gmail・リンク集は出さない */
   @media (max-width: 900px) {
@@ -996,7 +996,7 @@ function personStatus_(email, tasks, nowS, today, tomorrow, since) {
   Object.keys(tasks).forEach(function (id) { var t = tasks[id]; if (t.scope === 'self' && t.creator === email && t.status === 'done' && t.due && t.doneAt >= since && t.doneAt > t.due + ' ' + (t.dueTime || '23:59')) st.lateDone++; });
   rows_('history').forEach(function (r) { // 繰り返しの前の回で間に合わなかった
     if (String(r[3]).toLowerCase() !== email || str_(r[6]) < since) return;
-    var p = personHist_(email, str_(r[4]), str_(r[5]), ymdOf_(r[1]), String(r[2] || '')); if (p.late) st.lateDone++;
+    var p = personHist_(email, str_(r[4]), str_(r[5]), ymdOf_(r[1]), hmOf_(r[2]), str_(r[6])); if (p.late) st.lateDone++;
   });
   // 返事待ち: 自分が書いた質問が、そのタスクの最後の書き込みのまま（発信者からまだ返事がない）
   var last = {};
@@ -1137,13 +1137,15 @@ function historyOf_(t) {
   rows_('history').forEach(function (r) {
     if (String(r[0]) !== t.id) return;
     var k = str_(r[6]), c = cycles[k] || (cycles[k] = { due: ymdOf_(r[1]), dueTime: hmOf_(r[2]), closedAt: k, how: String(r[7] || ''), people: [] });
-    c.people.push(personHist_(String(r[3]).toLowerCase(), str_(r[4]), str_(r[5]), c.due, c.dueTime));
+    c.people.push(personHist_(String(r[3]).toLowerCase(), str_(r[4]), str_(r[5]), c.due, c.dueTime, k));
   });
   return Object.keys(cycles).sort().reverse().slice(0, HISTORY_KEEP).map(function (k) { return cycles[k]; });
 }
-function personHist_(email, seenAt, doneAt, due, dueTime) {
+// closedAt: その回が終わった時刻。締切より前にリセットされた回で未完了だった人は「遅れ」に数えない（cut=締切前に終わった・2026-11-02）
+function personHist_(email, seenAt, doneAt, due, dueTime, closedAt) {
   var limit = due ? due + ' ' + (dueTime || '23:59') : '';
-  return { email: email, name: nameOf_(email), seenAt: seenAt, doneAt: doneAt, late: !!(limit && (doneAt ? doneAt > limit : true)) };
+  var cut = !!(limit && !doneAt && closedAt && closedAt < limit);
+  return { email: email, name: nameOf_(email), seenAt: seenAt, doneAt: doneAt, cut: cut, late: !!(limit && !cut && (doneAt ? doneAt > limit : true)) };
 }
 
 // 完了を全員分外す（開いた・リマインドの記録も消す。タスクも未完了に）
@@ -1964,7 +1966,7 @@ function historyHtml(t) {
       var p = c.people.filter(function (x) { return x.email === e; })[0];
       if (!p) return '<td class="dim">−</td>';
       if (!c.current && p.late) lateN++;
-      return '<td class="' + (p.late ? 'late' : '') + '"><div>開封 ' + (p.seenAt ? fmtDt(p.seenAt) : '<span class="dim">なし</span>') + '</div><div>完了 ' + (p.doneAt ? '<span class="' + (p.late ? 'ng' : 'ok') + '">' + fmtDt(p.doneAt) + (p.late ? ' 遅れ' : '') + '</span>' : (p.late ? '<span class="ng">未完了</span>' : '<span class="dim">まだ</span>')) + '</div></td>';
+      return '<td class="' + (p.late ? 'late' : '') + '"><div>開封 ' + (p.seenAt ? fmtDt(p.seenAt) : '<span class="dim">なし</span>') + '</div><div>完了 ' + (p.doneAt ? '<span class="' + (p.late ? 'ng' : 'ok') + '">' + fmtDt(p.doneAt) + (p.late ? ' 遅れ' : '') + '</span>' : (p.late ? '<span class="ng">未完了</span>' : p.cut ? '<span class="dim" title="締切より前にリセットしたので遅れに数えません">締切前にリセット</span>' : '<span class="dim">まだ</span>')) + '</div></td>';
     }).join('');
     return '<tr><td>' + esc(names[e]) + '</td>' + cells + '<td class="cnt' + (lateN ? ' bad' : '') + '">' + (past ? lateN + ' / ' + past : '−') + '</td></tr>';
   }).join('');
