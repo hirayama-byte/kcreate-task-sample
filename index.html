@@ -302,12 +302,12 @@
             <div class="field"><label>見出し</label><input id="cTitle" type="text" placeholder="例: 11月号 入稿確認"></div>
             <div class="field"><label>内容</label><textarea id="cBody" rows="2" placeholder="やることの説明"></textarea></div>
             <div class="row2"><div class="field"><label>締切</label><input id="cDue" type="date"></div><div class="field"><label>時刻（任意）</label><input id="cDueTime" type="time"></div></div>
-            <div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="cRepeat"><option value="">しない</option><option value="weekly">毎週</option><option value="biweekly">隔週</option><option value="monthly">毎月（同じ日）</option><option value="monthend">毎月 月末</option></select></div><div class="field"><label>復活する日</label><select id="cLead" disabled><option value="0">当日の朝</option></select></div></div>
+            <div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="cRepeat"><option value="">しない</option><option value="weekly">毎週</option><option value="biweekly">隔週</option><option value="monthly">毎月（同じ日）</option><option value="monthend">毎月 月末</option><option value="nthwd">毎月 第◯ ◯曜日</option><option value="lastwd">毎月 最後の◯曜日</option></select></div><div class="field"><label>復活する日</label><select id="cLead" disabled><option value="0">当日の朝</option></select></div></div>
             <div class="rpv hide" id="cRepeatPv"></div>
-            <div class="row2"><div class="field"><label>所要時間（分）</label><input id="cMins" type="number" min="1" step="5" placeholder="例: 30"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="cImportant" style="width:auto;height:auto;margin:0">重要（ピンク）</label></div></div>
+            <div class="row2"><div class="field"><label>所要時間（分）</label><input id="cMins" type="number" min="1" step="1" placeholder="例: 30"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="cImportant" style="width:auto;height:auto;margin:0">重要（ピンク）</label></div></div>
             <div class="field"><label>リンク（任意）</label><input id="cLink" type="url" placeholder="https://"></div>
             <div class="field"><label>誰のタスク</label><div class="seg"><button id="cSelf" class="on">個人</button><button id="cTeam">チーム</button><button id="cCompany">全社</button></div></div>
-            <div class="field hide" id="cToWrap"><label style="display:flex;align-items:center;gap:4px"><span id="cToLabel">共有する相手</span>（<b id="cToN">0</b> 人）<span style="flex:1"></span><button class="btn sm ghost" id="cAll" style="height:22px;padding:0 6px;font-size:11px">全員</button><button class="btn sm ghost" id="cNone" style="height:22px;padding:0 6px;font-size:11px">解除</button></label><div class="checks" id="cTo"></div><label class="hint" style="margin-top:8px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="cMe" style="width:auto;height:auto;margin:0">自分のボードにも入れる</label></div>
+            <div class="field hide" id="cToWrap"><label style="display:flex;align-items:center;gap:4px"><span id="cToLabel">共有する相手</span>（<b id="cToN">0</b> 人）<span style="flex:1"></span><button class="btn sm ghost" id="cAll" style="height:22px;padding:0 6px;font-size:11px">全員</button><button class="btn sm ghost" id="cNone" style="height:22px;padding:0 6px;font-size:11px">解除</button></label><div class="checks" id="cTo"></div><p class="hint" style="margin:8px 0 0">自分も対象として、自分のボードにも入ります</p></div>
             <button class="btn primary" id="cSave" style="width:100%;justify-content:center">タスクを作成</button>
           </div>
         </div>
@@ -405,6 +405,7 @@
   Sheet.prototype.getMaxRows = function () { return Math.max(this.data.length, 1000); };
   Sheet.prototype.getLastRow = function () { return this.data.length; };
   Sheet.prototype.getLastColumn = function () { return this.data.reduce(function (m, r) { return Math.max(m, r.length); }, 0); };
+  Sheet.prototype.getDataRange = function () { return new Range(this, 1, 1, Math.max(this.getLastRow(), 1), Math.max(this.getLastColumn(), 1)); };
   Sheet.prototype.appendRow = function (r) { this.data.push(this._conv(r.slice(), 1)); return this; };
   // 書式が文字列でない列に yyyy-MM-dd を入れると Date になる（実物と同じ落とし穴を再現）
   Sheet.prototype._conv = function (row, c0) {
@@ -622,7 +623,7 @@ var ADMIN_EMAIL = 'hirayama@k-create.co.jp'; // 最初の管理者（admins シ�
 var STAFF_SHEET_ID = '1bA0xaY9fIwu1PVTzmvbV5_pZ4zmeC2bfMW0ClEBOpQM'; // 社内スタッフ名簿（サイト共通）★システム（消さないで）内。A=メール B=名前（姓 名）・1行目は見出し
 var CODE_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
 var TASK_HEAD = ['id', 'title', 'body', 'due', 'due_time', 'minutes', 'link', 'creator', 'created', 'scope', 'status', 'done_at', 'updated', 'kind', 'important', 'repeat', 'repeat_lead'];
-// repeat: ''（なし）/ weekly（毎週・締切の曜日）/ biweekly（隔週）/ monthly:D（毎月D日・無い月は月末）/ monthend（毎月末）。repeat_lead: 次の締切の何日前の朝に復活するか（0=当日）
+// repeat: ''（なし）/ weekly（毎週・締切の曜日）/ biweekly（隔週）/ monthly:D（毎月D日・無い月は月末）/ monthend（毎月末）/ nthwd:N:W（毎月 第N W曜・N=1〜4・W=0日〜6土）/ lastwd:W（毎月 最後のW曜）。repeat_lead: 次の締切の何日前の朝に復活するか（0=当日）
 // kind: self（個人）/ team（チーム＝選んだ相手）/ all（全社＝名前登録済みの全員）。important=1 は重要（色はピンクが優先）
 // scope: self（自分用）/ share（社内メンバーに共有）。status: open / done / deleted。due は yyyy-MM-dd の文字・due_time は HH:mm の文字（空でも可）
 var ASSIGN_HEAD = ['task_id', 'email', 'status', 'done_at', 'assigned_at', 'seen_at', 'remind_at', 'remind_seen']; // 共有タスクの担当者ごとの状態。status: open / done。remind_at=発信者がリマインドを押した日時・remind_seen=本人が「確認した」日時
@@ -634,7 +635,7 @@ var LINK_HEAD = ['label', 'url', 'order'];
 var KINDS = ['self', 'team', 'all'];
 var KIND_COLOR = { self: 'yellow', team: 'green', all: 'blue' }; // 個人=黄・チーム=黄緑・全社=水色。重要=ピンク
 var REPEAT_HOUR = '08:00'; // 繰り返しタスクが復活する時刻（全員の完了が外れて、もう一度ボードに出る）
-var REPEAT_MAX_LEAD = { weekly: 6, biweekly: 13, monthly: 27, monthend: 27 }; // 復活は「前の締切より後」になるように
+var REPEAT_MAX_LEAD = { weekly: 6, biweekly: 13, monthly: 27, monthend: 27, nthwd: 27, lastwd: 27 }; // 復活は「前の締切より後」になるように
 var MAIL_MAX = 8;     // 新着メールの表示件数
 var BOARD_DAYS = 365; // 期限なしのタスクの並び順用（期限なしは最後）
 var DEFAULT_LINKS = [ // リンク集の初期値（オーナー指定の順・2026-10-31）。QR管理・一斉DM は本番 URL（サンプル版を作るときは build-demo.js がサンプル版の URL に置き換える）
@@ -653,7 +654,7 @@ var DEFAULT_SETTINGS = [
   ['remind_minutes', '5'],   // 画面を開いている間、何分ごとに確認してポップアップするか
   ['cal_from', '8'], ['cal_to', '20'] // 本日のスケジュールの表示時間帯
 ];
-var DATE_COLS = { tasks: [4, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5], history: [2, 3, 5, 6, 7] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
+var DATE_COLS = { tasks: [4, 5, 9, 12, 13], assignments: [4, 5, 6, 7, 8], comments: [5], history: [2, 3, 5, 6, 7] }; // 文字のまま保存する列（日付に化けて +9時間ずれるのを防ぐ）
 
 function doGet(e) {
   // 権限を足したあと（例: 2026-10-31 カレンダーの書き込み）は、許可が足りない人に「許可する」画面を出す。出さないとカレンダー・メールが「承認が必要です」のままになる
@@ -711,21 +712,32 @@ function ensureSheet_(ss, name, head) {
 }
 
 // ---------- 共通 ----------
-function ss_() { return SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SHEET_ID') || SHEET_ID); }
-function sheet_(name) { return ss_().getSheetByName(name); }
+// 速さ（2026-11-02）: 1回の呼び出しの中でスプレッドシートとシートを開き直さない（openById は1回ごとに時間がかかる）
+var ssMemo_ = {}, shMemo_ = {};
+function ss_() {
+  var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID') || SHEET_ID;
+  return ssMemo_[id] || (ssMemo_[id] = SpreadsheetApp.openById(id));
+}
+function sheet_(name) {
+  var ss = ss_(), k = ss.getId() + '/' + name;
+  if (shMemo_[k]) return shMemo_[k];
+  var sh = ss.getSheetByName(name); if (sh) shMemo_[k] = sh;
+  return sh;
+}
 function myEmail_() { return String(Session.getActiveUser().getEmail() || '').toLowerCase(); }
 function nowDate_() { return new Date(); }
 function now_() { return Utilities.formatDate(nowDate_(), TZ, 'yyyy-MM-dd HH:mm'); }
 function today_() { return Utilities.formatDate(nowDate_(), TZ, 'yyyy-MM-dd'); }
 function str_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm') : String(v == null ? '' : v); }
+// 時刻（HH:mm）: シートが時刻として扱うと Date で返る → 「Sat Dec 30 1899 17:00:00 …」にならないよう HH:mm に戻す（2026-11-02）
+function hmOf_(v) { if (v instanceof Date) return Utilities.formatDate(v, TZ, 'HH:mm'); var s = String(v == null ? '' : v).trim(), m = s.match(/(\d{1,2}):(\d{2})/); return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : s; }
 function ymdOf_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v == null ? '' : v).slice(0, 10); }
 var memo_ = {};
 function bust_(name) { delete memo_[name]; }
 function rows_(name) {
   if (memo_[name]) return memo_[name];
-  var sh = sheet_(name);
-  var n = sh.getLastRow();
-  memo_[name] = n < 2 ? [] : sh.getRange(2, 1, n - 1, sh.getLastColumn()).getValues();
+  var v = sheet_(name).getDataRange().getValues(); // 1回で読む（行数・列数を別々に聞かない）
+  memo_[name] = v.slice(1);
   return memo_[name];
 }
 function settings_() { var o = {}; rows_('settings').forEach(function (r) { o[String(r[0])] = String(r[1]); }); return o; }
@@ -875,7 +887,7 @@ function setSettings(s) {
 
 // ---------- タスク ----------
 function taskObj_(r) {
-  return { id: String(r[0]), title: String(r[1]), body: String(r[2] || ''), due: ymdOf_(r[3]), dueTime: String(r[4] || ''), minutes: String(r[5] || ''), link: String(r[6] || ''),
+  return { id: String(r[0]), title: String(r[1]), body: String(r[2] || ''), due: ymdOf_(r[3]), dueTime: hmOf_(r[4]), minutes: String(r[5] || ''), link: String(r[6] || ''),
            creator: String(r[7]).toLowerCase(), created: str_(r[8]), scope: String(r[9]) || 'self', status: String(r[10]) || 'open', doneAt: str_(r[11]), updated: str_(r[12]), kind: kindOf_(r[13]), important: String(r[14] || '') === '1', color: colorFor_(r[13], String(r[14] || '') === '1'),
            repeat: String(r[15] || ''), repeatLead: Number(r[16] || 0) || 0 };
 }
@@ -1019,14 +1031,22 @@ function addDays_(s, n) { var p = ymdParts_(s); return ymdStr_(p.y, p.m, p.d + n
 function lastDay_(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
 function weekday_(s) { var p = ymdParts_(s); return new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay(); }
 function repeatKind_(r) { return String(r || '').split(':')[0]; }
-function repeatOk_(r) { return /^(weekly|biweekly|monthend|monthly:([1-9]|[12]\d|3[01]))$/.test(String(r || '')); }
+function repeatOk_(r) { return /^(weekly|biweekly|monthend|monthly:([1-9]|[12]\d|3[01])|nthwd:[1-4]:[0-6]|lastwd:[0-6])$/.test(String(r || '')); }
+// y年m月の第n W曜（n=0 は最後のW曜）の日にち
+function nthWeekday_(y, m, n, w) {
+  if (!n) { var L = lastDay_(y, m); return L - ((weekday_(ymdStr_(y, m, L)) - w + 7) % 7); }
+  return 1 + ((w - weekday_(ymdStr_(y, m, 1)) + 7) % 7) + 7 * (n - 1);
+}
+var WD_ = '日月火水木金土';
 // 今の締切の次の締切
 function nextDue_(r, due) {
-  var k = repeatKind_(r), p = ymdParts_(due);
+  var k = repeatKind_(r), p = ymdParts_(due), a = String(r).split(':');
   if (k === 'weekly') return addDays_(due, 7);
   if (k === 'biweekly') return addDays_(due, 14);
   var y = p.m === 12 ? p.y + 1 : p.y, m = p.m === 12 ? 1 : p.m + 1;
   if (k === 'monthend') return ymdStr_(y, m, lastDay_(y, m));
+  if (k === 'nthwd') return ymdStr_(y, m, nthWeekday_(y, m, Number(a[1]), Number(a[2])));
+  if (k === 'lastwd') return ymdStr_(y, m, nthWeekday_(y, m, 0, Number(a[1])));
   var d = Number(String(r).split(':')[1]) || p.d;
   return ymdStr_(y, m, Math.min(d, lastDay_(y, m)));
 }
@@ -1035,7 +1055,8 @@ function reviveAt_(due, lead) { return addDays_(due, -(Number(lead) || 0)) + ' '
 function leadLabel_(lead) { lead = Number(lead) || 0; return lead ? (lead % 7 === 0 ? lead / 7 + '週間前' : lead + '日前') : '当日'; }
 function repeatLabel_(r, due, lead) {
   var k = repeatKind_(r), wd = '日月火水木金土'.charAt(weekday_(due)) + '曜';
-  var base = k === 'weekly' ? '毎週 ' + wd : k === 'biweekly' ? '隔週 ' + wd : k === 'monthend' ? '毎月 月末' : '毎月 ' + String(r).split(':')[1] + '日';
+  var a = String(r).split(':');
+  var base = k === 'weekly' ? '毎週 ' + wd : k === 'biweekly' ? '隔週 ' + wd : k === 'monthend' ? '毎月 月末' : k === 'nthwd' ? '毎月 第' + a[1] + ' ' + WD_.charAt(Number(a[2])) + '曜' : k === 'lastwd' ? '毎月 最後の' + WD_.charAt(Number(a[1])) + '曜' : '毎月 ' + a[1] + '日';
   return base + '（' + leadLabel_(lead) + 'の朝' + Number(REPEAT_HOUR.slice(0, 2)) + '時に復活）';
 }
 // 入力（repeat, lead, due）を確かめて [repeat, lead] を返す。monthly だけ来たら締切の日にちを使う
@@ -1044,6 +1065,12 @@ function repeatIn_(repeat, lead, due) {
   if (!repeat) return ['', ''];
   if (!due) throw new Error('繰り返すときは締切の日付を入れてください（曜日・日にちの基準になります）');
   if (repeat === 'monthly') repeat = 'monthly:' + ymdParts_(due).d;
+  if (repeat === 'nthwd' || repeat === 'lastwd') { // 曜日と第何週は締切の日から決める
+    var dd = ymdParts_(due).d, w = weekday_(due), n = Math.ceil(dd / 7);
+    if (repeat === 'nthwd' && n > 4) throw new Error('締切が第5' + WD_.charAt(w) + '曜です。毎月はない週なので「毎月 最後の◯曜日」を選んでください');
+    repeat = repeat === 'nthwd' ? 'nthwd:' + n + ':' + w : 'lastwd:' + w;
+    if (repeat.indexOf('lastwd') === 0 && ymdParts_(addDays_(due, 7)).m === ymdParts_(due).m) throw new Error('「最後の◯曜日」は、締切をその月の最後の' + WD_.charAt(w) + '曜にしてください');
+  }
   if (!repeatOk_(repeat)) throw new Error('繰り返しの形が正しくありません');
   var max = REPEAT_MAX_LEAD[repeatKind_(repeat)];
   if (lead > max) throw new Error('復活のタイミングは締切の ' + max + ' 日前までにしてください');
@@ -1104,7 +1131,7 @@ function historyOf_(t) {
   var cycles = {};
   rows_('history').forEach(function (r) {
     if (String(r[0]) !== t.id) return;
-    var k = str_(r[6]), c = cycles[k] || (cycles[k] = { due: ymdOf_(r[1]), dueTime: String(r[2] || ''), closedAt: k, how: String(r[7] || ''), people: [] });
+    var k = str_(r[6]), c = cycles[k] || (cycles[k] = { due: ymdOf_(r[1]), dueTime: hmOf_(r[2]), closedAt: k, how: String(r[7] || ''), people: [] });
     c.people.push(personHist_(String(r[3]).toLowerCase(), str_(r[4]), str_(r[5]), c.due, c.dueTime));
   });
   return Object.keys(cycles).sort().reverse().slice(0, HISTORY_KEEP).map(function (k) { return cycles[k]; });
@@ -1139,11 +1166,11 @@ function sendReminder(id) {
   if (t.scope !== 'share') throw new Error('自分用のタスクにはリマインドを送れません');
   var sh = sheet_('assignments'), rows = rows_('assignments'), ts = now_(), names = [];
   rows.forEach(function (r, i) {
-    if (String(r[0]) !== id || String(r[2]) === 'done') return;
+    if (String(r[0]) !== id || String(r[2]) === 'done' || String(r[1]).toLowerCase() === t.creator) return; // 発信者自身には送らない
     sh.getRange(i + 2, 7, 1, 2).setValues([[ts, '']]);
     names.push(nameOf_(r[1]));
   });
-  if (!names.length) throw new Error('リマインドする相手がいません（全員が完了しています）');
+  if (!names.length) throw new Error('リマインドする相手がいません（相手は全員完了しています）');
   bust_('assignments');
   return { count: names.length, names: names, at: ts };
 }
@@ -1187,8 +1214,8 @@ function createTask(p) {
     var excl = {}; (p.exclude || []).forEach(function (e) { excl[String(e || '').trim().toLowerCase()] = 1; }); // 全社のとき個別に外す人
     var srcTo = kind === 'all' ? membersList_().map(function (m) { return m.email; }).filter(function (e) { return e !== email && !excl[e]; }) : (p.to || []);
     srcTo.forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (isEmail_(e) && !seen[e]) { seen[e] = 1; to.push(e); } });
-    if (p.includeMe && !seen[email]) to.push(email);
-    if (!to.length) throw new Error(kind === 'all' ? '共有する相手がいません（全員を外しています）' : '共有する相手を選んでください');
+    if (!to.filter(function (e) { return e !== email; }).length) throw new Error(kind === 'all' ? '共有する相手がいません（全員を外しています）' : '共有する相手を選んでください');
+    if (!seen[email]) to.push(email); // チーム・全社は発信者も必ず対象（自分のボードにも出る・2026-11-02〜）
     var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
     to.forEach(function (e) { if (!known[e]) throw new Error('名前が登録されていない人がいます: ' + e); });
   }
@@ -1287,6 +1314,7 @@ function listDone(month) {
   rows_('assignments').forEach(function (r) {
     if (String(r[1]).toLowerCase() !== email || String(r[2]) !== 'done') return;
     var t = tasks[String(r[0])]; if (!t) return;
+    if (t.creator === email && t.status === 'done') return; // 自分が発信して全員完了したものは下で「発信（全員完了）」として出す
     var o = decorate_(t, email); o.kind = 'assigned'; o.finished = str_(r[3]); out.push(o); seen[t.id] = 1;
   });
   Object.keys(tasks).forEach(function (id) {
@@ -1304,16 +1332,16 @@ function getTask(id) {
   var x = taskRow_(id), t = x.t;
   if (!canSee_(t, email) && !canOverview_(email)) throw new Error('このタスクを見る権限がありません'); // 全員の状況を見られる人は、他の人のタスクも見るだけできる
   var ash = sheet_('assignments'), arows = rows_('assignments');
-  for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email && !String(arows[i][5] || '')) { ash.getRange(i + 2, 6).setValue(now_()); bust_('assignments'); break; }
-  var csh = sheet_('comments'), crows = rows_('comments'), changed = false, comments = [];
+  // 書いた値は読み込み済みの行にもそのまま入れる（シートを読み直さないので速い・2026-11-02）
+  for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email && !String(arows[i][5] || '')) { var ts = now_(); ash.getRange(i + 2, 6).setValue(ts); arows[i][5] = ts; break; }
+  var csh = sheet_('comments'), crows = rows_('comments'), comments = [];
   crows.forEach(function (r, i) {
     if (String(r[1]) !== id) return;
     var unread = String(r[5] || '').split(',').filter(String);
     var wasUnread = unread.indexOf(email) >= 0;
-    if (wasUnread) { unread = unread.filter(function (e) { return e !== email; }); csh.getRange(i + 2, 6).setValue(unread.join(',')); changed = true; }
+    if (wasUnread) { unread = unread.filter(function (e) { return e !== email; }); csh.getRange(i + 2, 6).setValue(unread.join(',')); r[5] = unread.join(','); }
     comments.push({ id: String(r[0]), email: String(r[2]).toLowerCase(), name: nameOf_(r[2]), body: String(r[3]), created: str_(r[4]), mine: String(r[2]).toLowerCase() === email, wasUnread: wasUnread });
   });
-  if (changed) bust_('comments');
   var o = decorate_(t, email);
   o.comments = comments; o.unread = 0;
   if (t.creator === email || isAdmin_(email)) { // 発信者・管理者だけ: 今回と前の回（最大 HISTORY_KEEP 回）の開封・完了
@@ -1476,7 +1504,7 @@ function getMailApi_() {
   var old1 = createTask({ title: '10月号 入稿完了報告', body: 'サイボウズに校了報告', due: ymd(-10) }); completeTask(old1.id);
   var old2 = createTask({ title: '見積作成サイト ゴミ箱から復元', due: ymd(-1) }); completeTask(old2.id);
   var old3 = createTask({ title: '登録名をフルネームに統一', body: '名簿シート → QR / DM / 見積', scope: 'share', to: [S, K] });
-  at(S, function () { completeTask(old3.id); }); at(K, function () { completeTask(old3.id); });
+  at(S, function () { completeTask(old3.id); }); at(K, function () { completeTask(old3.id); }); completeTask(old3.id); // 発信者も対象なので自分の分も完了して「全員完了」に
   // 進み具合いろいろ
   at(S, function () { completeTask(t.s1.id); });
   at('ito@k-create.co.jp', function () { completeTask(t.s2.id); }); at('yamada@k-create.co.jp', function () { completeTask(t.s2.id); }); at(S, function () { getTask(t.s2.id); });
@@ -1527,7 +1555,7 @@ function getMailApi_() {
         setTimeout(function () {
           try { var r = JSON.parse(JSON.stringify(window[k].apply(null, a))); ok && ok(r === undefined ? null : r); }
           catch (e) { ng && ng(e); }
-        }, 150);
+        }, (window.__slow && window.__slow[k]) || 150); // テストでサーバーの遅さを再現するとき window.__slow = { getTask: 3000 }
       };
     } });
   }
@@ -1545,11 +1573,13 @@ function call(name) {
 }
 function toast(msg, err) { var t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, err ? 5000 : 2500); }
 function fail(e) { var m = (e && e.message) || String(e); toast(/承認|authoriz/i.test(m) ? '許可が足りません。ページを開き直して「許可する」を押してください' : m, true); }
-function modal(html, onOpen) {
-  var bg = document.createElement('div'); bg.className = 'modal-bg'; bg.innerHTML = '<div class="modal">' + html + '</div>';
-  bg.addEventListener('click', function (e) { if (e.target === bg) bg.remove(); });
+function modal(html, onOpen, bg) { // bg を渡すと、開いている画面の中身だけ入れ替える
+  var fresh = !bg;
+  if (fresh) { bg = document.createElement('div'); bg.className = 'modal-bg'; bg.addEventListener('click', function (e) { if (e.target === bg) bg.remove(); }); }
+  bg.innerHTML = '<div class="modal">' + html + '</div>';
   bg.querySelectorAll('[data-close]').forEach(function (b) { b.onclick = function () { bg.remove(); }; });
-  document.body.appendChild(bg); onOpen && onOpen(bg); return bg;
+  if (fresh) document.body.appendChild(bg);
+  onOpen && onOpen(bg); return bg;
 }
 function initial(name) { return String(name || '?').replace(/\s/g, '').slice(0, 1) || '?'; }
 var WD = ['日', '月', '火', '水', '木', '金', '土'];
@@ -1565,23 +1595,47 @@ function dueClass(t) {
 var REPEAT_HOUR = '08:00';
 function ymdS(y, m, d) { var x = new Date(Date.UTC(y, m - 1, d)); return x.getUTCFullYear() + '-' + ('0' + (x.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + x.getUTCDate()).slice(-2); }
 function lastDayOf(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
-function nextDueOf(r, due) { var p = due.split('-').map(Number), k = String(r).split(':')[0];
+function wdOf(y, m, d) { return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); }
+function nthWdOf(y, m, n, w) { if (!n) { var L = lastDayOf(y, m); return L - ((wdOf(y, m, L) - w + 7) % 7); } return 1 + ((w - wdOf(y, m, 1) + 7) % 7) + 7 * (n - 1); } // n=0 は最後のW曜
+function nextDueOf(r, due) { var p = due.split('-').map(Number), a = String(r).split(':'), k = a[0];
   if (k === 'weekly') return ymdS(p[0], p[1], p[2] + 7); if (k === 'biweekly') return ymdS(p[0], p[1], p[2] + 14);
   var y = p[1] === 12 ? p[0] + 1 : p[0], m = p[1] === 12 ? 1 : p[1] + 1; if (k === 'monthend') return ymdS(y, m, lastDayOf(y, m));
-  var d = Number(String(r).split(':')[1]) || p[2]; return ymdS(y, m, Math.min(d, lastDayOf(y, m))); }
+  if (k === 'nthwd') return ymdS(y, m, nthWdOf(y, m, Number(a[1]), Number(a[2]))); if (k === 'lastwd') return ymdS(y, m, nthWdOf(y, m, 0, Number(a[1])));
+  var d = Number(a[1]) || p[2]; return ymdS(y, m, Math.min(d, lastDayOf(y, m))); }
 function reviveOf(due, lead) { var p = due.split('-').map(Number); return ymdS(p[0], p[1], p[2] - (Number(lead) || 0)); }
 function leadText(lead) { lead = Number(lead) || 0; return lead ? (lead % 7 === 0 ? lead / 7 + '週間前' : lead + '日前') : '当日'; }
-var LEAD_OPTS = { weekly: [0, 1, 2, 3, 4, 5, 6], biweekly: [0, 1, 2, 3, 5, 7, 10], monthly: [0, 1, 2, 3, 5, 7, 10, 14], monthend: [0, 1, 2, 3, 5, 7, 10, 14] };
+var LEAD_OPTS = { weekly: [0, 1, 2, 3, 4, 5, 6], biweekly: [0, 1, 2, 3, 5, 7, 10], monthly: [0, 1, 2, 3, 5, 7, 10, 14], monthend: [0, 1, 2, 3, 5, 7, 10, 14], nthwd: [0, 1, 2, 3, 5, 7, 10, 14], lastwd: [0, 1, 2, 3, 5, 7, 10, 14] };
 function fillLead(sel, kind, cur) { var o = LEAD_OPTS[kind] || [0]; sel.innerHTML = o.map(function (n) { return '<option value="' + n + '">' + leadText(n) + 'の朝' + '</option>'; }).join(''); sel.disabled = !kind; sel.value = o.indexOf(Number(cur)) >= 0 ? String(cur) : '0'; }
 // 繰り返しの見本: 次にいつ復活するか（日付は締切が基準）
 function repeatPreview(kind, lead, due) {
   if (!kind) return '';
-  if (!due) return '⚠ 締切の日付を入れてください（' + (kind === 'monthend' ? '月末' : kind === 'monthly' ? '日にち' : '曜日') + 'の基準になります）';
-  var r = kind === 'monthly' ? 'monthly:' + Number(due.slice(8)) : kind, d1 = nextDueOf(r, due), d2 = nextDueOf(r, d1);
-  var base = kind === 'weekly' ? '毎週 ' + WD[new Date(due + 'T00:00:00').getDay()] + '曜' : kind === 'biweekly' ? '隔週 ' + WD[new Date(due + 'T00:00:00').getDay()] + '曜' : kind === 'monthend' ? '毎月 月末' : '毎月 ' + Number(due.slice(8)) + '日';
-  return '🔁 <b>' + base + '</b>（締切の' + leadText(lead) + 'の朝' + Number(REPEAT_HOUR.slice(0, 2)) + '時に復活）<br>次の復活: <b>' + fmtYmd(reviveOf(d1, lead)) + ' ' + REPEAT_HOUR + '</b><br>その次: ' + fmtYmd(reviveOf(d2, lead)) + ' ' + REPEAT_HOUR + '<br><span style="color:#64748b">復活すると全員の完了が外れて、もう一度ボードに出ます</span>';
+  if (!due) return '⚠ 締切の日付を入れてください（' + (kind === 'monthend' ? '月末' : kind === 'monthly' ? '日にち' : kind === 'nthwd' ? '第何週と曜日' : '曜日') + 'の基準になります）';
+  var p = due.split('-').map(Number), w = wdOf(p[0], p[1], p[2]), n = Math.ceil(p[2] / 7), wd = WD[w] + '曜';
+  if (kind === 'nthwd' && n > 4) return '⚠ 締切が第5' + wd + 'です。毎月はない週なので「毎月 最後の◯曜日」を選んでください';
+  if (kind === 'lastwd' && p[2] + 7 <= lastDayOf(p[0], p[1])) return '⚠ 締切をその月の最後の' + wd + '（' + fmtYmd(ymdS(p[0], p[1], nthWdOf(p[0], p[1], 0, w))) + '）にしてください';
+  var r = kind === 'monthly' ? 'monthly:' + p[2] : kind === 'nthwd' ? 'nthwd:' + n + ':' + w : kind === 'lastwd' ? 'lastwd:' + w : kind, d1 = nextDueOf(r, due), d2 = nextDueOf(r, d1);
+  var base = kind === 'weekly' ? '毎週 ' + wd : kind === 'biweekly' ? '隔週 ' + wd : kind === 'monthend' ? '毎月 月末' : kind === 'nthwd' ? '毎月 第' + n + ' ' + wd : kind === 'lastwd' ? '毎月 最後の' + wd : '毎月 ' + p[2] + '日';
+  return '🔁 <b>' + base + '</b>（締切の' + leadText(lead) + 'の朝' + Number(REPEAT_HOUR.slice(0, 2)) + '時に復活）<br>次の締切: <b>' + fmtYmd(d1) + '</b>・次の復活: <b>' + fmtYmd(reviveOf(d1, lead)) + ' ' + REPEAT_HOUR + '</b><br>その次: ' + fmtYmd(reviveOf(d2, lead)) + ' ' + REPEAT_HOUR + '（締切 ' + fmtYmd(d2) + '）<br><span style="color:#64748b">復活すると全員の完了が外れて、もう一度ボードに出ます</span>';
 }
 function repeatKindOf(r) { return String(r || '').split(':')[0]; }
+// 所要時間の ▲▼: 1, 2, 3, 5, 10, 15, 20 …（5 から先は 5 刻み）。キーで数字を打ったときはそのまま
+function minsUp(v) { v = Math.floor(Number(v) || 0); return v < 1 ? 1 : v < 3 ? v + 1 : v < 5 ? 5 : Math.floor(v / 5) * 5 + 5; }
+function minsDown(v) { v = Math.floor(Number(v) || 0); return v <= 1 ? 1 : v <= 3 ? v - 1 : v <= 5 ? 3 : Math.ceil(v / 5) * 5 - 5; }
+function minsStepper(el) {
+  var prev = el.value, typing = false;
+  el.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); el.value = e.key === 'ArrowUp' ? minsUp(el.value) : minsDown(el.value); prev = el.value; return; }
+    typing = true;
+  });
+  el.addEventListener('input', function () { // 矢印ボタン（スピナー）は値が ±1 されて届く
+    var d = Number(el.value) - Number(prev);
+    if (!typing && prev !== '' && el.value !== '' && Math.abs(d) === 1) el.value = d > 0 ? minsUp(prev) : minsDown(prev); // 空からの ▲ はブラウザが 1 にするのでそのまま（貼り付け等を 1 にしない）
+    typing = false; prev = el.value;
+  });
+  el.addEventListener('keyup', function () { typing = false; }); // 値が変わらないキー（空での Backspace 等）で「打っている」が残らないように
+  el.addEventListener('change', function () { prev = el.value; });
+  el.addEventListener('focus', function () { prev = el.value; });
+}
 function dueLabel(t) { if (!t.due) return '期限なし'; return fmtYmd(t.due) + (t.dueTime ? ' ' + t.dueTime : ''); }
 function dueTag(t) { var c = dueClass(t); return '<span class="tag ' + (c || 'open') + '">' + (c === 'late' ? '期限超過' : c === 'today' ? '今日まで' : c === 'soon' ? 'まもなく' : t.due ? '予定' : '期限なし') + '</span>'; }
 function memberName(email) { var m = S.members.filter(function (x) { return x.email === email; })[0]; return m ? m.name : (email || '').split('@')[0]; }
@@ -1692,6 +1746,8 @@ function doComplete(id, el) {
   if (el) el.style.opacity = .4;
   call('completeTask', id).then(function (t) {
     S.board = S.board.filter(function (x) { return x.id !== id; });
+    // 自分が発信した共有タスク（自分も対象）は、発信一覧の進み具合も直す。全員完了で繰り返しでなければ一覧から外す
+    if (t.isCreator && t.scope === 'share') { S.sent = S.sent.map(function (x) { return x.id === id ? t : x; }).filter(function (x) { return !(x.id === id && x.status === 'done' && !x.repeat); }); if (S.tab === 'sent') renderSent(); }
     renderBoard(); updateBadges();
     toast('完了しました' + (t.scope === 'share' && !t.isCreator ? '（' + t.creatorName + ' さんに伝わります）' : ''));
   }).catch(function (e) { if (el) el.style.opacity = 1; fail(e); });
@@ -1728,6 +1784,23 @@ function renderTo() {
 $('cAll').onclick = function () { if (S.kind === 'all') S.excl = {}; else others().forEach(function (m) { S.to[m.email] = 1; }); renderTo(); };
 $('cNone').onclick = function () { if (S.kind === 'all') others().forEach(function (m) { S.excl[m.email] = 1; }); else S.to = {}; renderTo(); };
 function setKind(k) { S.kind = k; $('cSelf').classList.toggle('on', k === 'self'); $('cTeam').classList.toggle('on', k === 'team'); $('cCompany').classList.toggle('on', k === 'all'); $('cToWrap').classList.toggle('hide', k === 'self'); renderTo(); }
+// 複製（2026-11-02）: 発信したタスクの中身を「タスクの作成」欄に入れる。直して「タスクを作成」で新しいタスクになる（元はそのまま）
+function copyToForm(t) {
+  show('dash');
+  $('cTitle').value = t.title || ''; $('cBody').value = t.body || ''; $('cMins').value = t.minutes || ''; $('cLink').value = t.link || '';
+  $('cImportant').checked = !!t.important;
+  var past = t.due && S.today && t.due < S.today;
+  $('cDue').value = past ? '' : (t.due || ''); $('cDueTime').value = past ? '' : (t.dueTime || '');
+  var kind = t.scope === 'share' ? (t.kind === 'all' ? 'all' : 'team') : 'self', me = S.me ? S.me.email : '', got = {};
+  (t.assignees || []).forEach(function (a) { got[a.email] = 1; });
+  S.to = {}; S.excl = {};
+  if (kind === 'team') others().forEach(function (m) { if (got[m.email]) S.to[m.email] = 1; });
+  if (kind === 'all') others().forEach(function (m) { if (!got[m.email]) S.excl[m.email] = 1; }); // 前に外した人は外したまま
+  setKind(kind);
+  var rk = repeatKindOf(t.repeat); $('cRepeat').value = rk; fillLead($('cLead'), rk, t.repeatLead || 0); renderRepeatPv();
+  setTimeout(function () { $('createCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(function () { $('cTitle').focus({ preventScroll: true }); }, 400); }, 50);
+  toast(past ? '複製しました。締切が過ぎていたので空にしています。締切を入れて「タスクを作成」を押してください' : '複製しました。内容を直して「タスクを作成」を押してください');
+}
 $('cSelf').onclick = function () { setKind('self'); }; $('cTeam').onclick = function () { setKind('team'); }; $('cCompany').onclick = function () { setKind('all'); };
 function renderRepeatPv() { var k = $('cRepeat').value; $('cRepeatPv').innerHTML = repeatPreview(k, $('cLead').value, $('cDue').value); $('cRepeatPv').classList.toggle('hide', !k); }
 $('cRepeat').onchange = function () {
@@ -1735,42 +1808,51 @@ $('cRepeat').onchange = function () {
   if (k === 'monthend' && !$('cDue').value) { var n = new Date(); $('cDue').value = ymdS(n.getFullYear(), n.getMonth() + 1, lastDayOf(n.getFullYear(), n.getMonth() + 1)); } // 月末は締切を今月末に
   renderRepeatPv();
 };
+minsStepper($('cMins'));
 $('cLead').onchange = renderRepeatPv; $('cDue').addEventListener('change', renderRepeatPv);
 $('cSave').onclick = function () {
-  var p = { repeat: $('cRepeat').value, repeatLead: $('cLead').value, title: $('cTitle').value, body: $('cBody').value, due: $('cDue').value, dueTime: $('cDueTime').value, minutes: $('cMins').value, link: $('cLink').value, kind: S.kind, important: $('cImportant').checked, to: S.kind === 'team' ? Object.keys(S.to) : [], exclude: S.kind === 'all' ? Object.keys(S.excl) : [], includeMe: $('cMe').checked };
+  var p = { repeat: $('cRepeat').value, repeatLead: $('cLead').value, title: $('cTitle').value, body: $('cBody').value, due: $('cDue').value, dueTime: $('cDueTime').value, minutes: $('cMins').value, link: $('cLink').value, kind: S.kind, important: $('cImportant').checked, to: S.kind === 'team' ? Object.keys(S.to) : [], exclude: S.kind === 'all' ? Object.keys(S.excl) : [] };
   if (!p.title.trim()) { toast('見出しを入力してください', true); $('cTitle').focus(); return; }
   if (p.repeat && !p.due) { toast('繰り返すときは締切の日付を入れてください', true); $('cDue').focus(); return; }
-  if (p.kind !== 'self' && !toCount() && !p.includeMe) { toast(p.kind === 'all' ? '全員を外しています。共有する相手を残してください' : '共有する相手を選んでください', true); return; }
+  if (p.kind !== 'self' && !toCount()) { toast(p.kind === 'all' ? '全員を外しています。共有する相手を残してください' : '共有する相手を選んでください', true); return; }
   $('cSave').disabled = true;
   call('createTask', p).then(function (t) {
     $('cSave').disabled = false;
     ['cTitle', 'cBody', 'cDue', 'cDueTime', 'cMins', 'cLink'].forEach(function (id) { $(id).value = ''; });
-    $('cMe').checked = false; $('cImportant').checked = false; S.to = {}; S.excl = {}; renderTo();
+    $('cImportant').checked = false; S.to = {}; S.excl = {}; renderTo();
     $('cRepeat').value = ''; fillLead($('cLead'), '', 0); renderRepeatPv();
     if (t.myStatus === 'open') { S.board.push(t); S.board.sort(boardOrder); renderBoard(); }
     if (t.scope === 'share') { S.sent.push(t); S.sent.sort(boardOrder); }
-    toast((t.scope === 'share' ? t.assignees.length + ' 人に共有しました' : 'タスクを作りました') + (t.nextRevive ? '（次の復活 ' + fmtYmd(t.nextRevive.slice(0, 10)) + ' ' + t.nextRevive.slice(11) + '）' : ''));
+    toast((t.scope === 'share' ? t.assignees.filter(function (a) { return a.email !== t.creator; }).length + ' 人に共有しました' : 'タスクを作りました') + (t.nextRevive ? '（次の復活 ' + fmtYmd(t.nextRevive.slice(0, 10)) + ' ' + t.nextRevive.slice(11) + '）' : ''));
   }).catch(function (e) { $('cSave').disabled = false; fail(e); });
 };
 function dueKey(t) { return t.due ? t.due + ' ' + (t.dueTime || '23:59') : '9999-12-31 23:59'; }
 function boardOrder(a, b) { var ka = dueKey(a), kb = dueKey(b); if (ka !== kb) return ka < kb ? -1 : 1; return a.created < b.created ? -1 : a.created > b.created ? 1 : 0; }
 
 // ---------- 詳細・質問 ----------
+// 速さ（2026-11-02）: ボードに出ている自分のタスクは、手元の情報ですぐ開く。質問・返事と履歴はサーバーから届いたら入れ替える
 function openTask(id, focusAsk) {
-  var bg = modal('<div class="mh"><h3>読み込み中…</h3></div>');
+  var known = [].concat(S.board || [], S.sent || []).filter(function (x) { return x.id === id; })[0];
+  var bg = known ? detailModal(Object.assign({}, known, { comments: null, loading: true }), focusAsk) : modal('<div class="mh"><h3>読み込み中…</h3></div>');
   call('getTask', id).then(function (t) {
-    bg.remove(); detailModal(t, focusAsk);
+    if (!bg.isConnected) { if (known) bg = null; else return; } // 届く前に閉じた
+    if (bg) {
+      var a = bg.querySelector('#askText'), typed = a ? a.value : '', focused = a && document.activeElement === a, sc = bg.querySelector('.modal') ? bg.querySelector('.modal').scrollTop : 0;
+      detailModal(t, known ? false : focusAsk, known ? bg : null);
+      if (!known) bg.remove();
+      else { var a2 = bg.querySelector('#askText'); if (a2) { a2.value = typed; if (focused) a2.focus(); } var m = bg.querySelector('.modal'); if (m) m.scrollTop = sc; }
+    }
     // 未読を消す
     [S.board, S.sent].forEach(function (list) { list.forEach(function (x) { if (x.id === id) x.unread = 0; }); });
     renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent();
-  }).catch(function (e) { bg.remove(); fail(e); });
+  }).catch(function (e) { if (bg) bg.remove(); fail(e); });
 }
-function detailModal(t, focusAsk) {
+function detailModal(t, focusAsk, into) {
   var c = dueClass(t);
   var people = t.scope === 'share' ? '<div class="people">' + t.assignees.map(function (a) {
     return '<div><span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '">' + (a.status === 'done' ? '完了' : a.seenAt ? '確認済・未対応' : '未対応') + '</span><span>' + esc(a.name) + '</span><span class="t">' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' : (a.seenAt ? fmtDt(a.seenAt) + ' に開いた' : 'まだ開いていません') + (a.remindAt ? '・🔔 ' + fmtDt(a.remindAt) + (a.remindSeen ? ' 確認済' : ' 未確認') : '')) + '</span></div>';
   }).join('') + '</div>' : '';
-  var html = '<div class="mh"><h3>' + esc(t.title) + '</h3><span class="sp"></span>' + dueTag(t) + '</div><div class="mb detail">' +
+  var html = '<div class="mh"><h3>' + esc(t.title) + '</h3><span class="sp"></span>' + dueTag(t) + '</div><div class="mb detail' + (t.loading ? ' loading' : '') + '">' +
     (t.body ? '<div class="body">' + esc(t.body) + '</div>' : '<p class="hint" style="margin:0">（内容なし）</p>') +
     '<dl><dt>締切</dt><dd class="' + (c === 'late' ? 'mono' : '') + '" style="' + (c === 'late' ? 'color:var(--danger)' : '') + '">' + esc(dueLabel(t)) + '</dd>' +
     '<dt>所要時間</dt><dd>' + (t.minutes ? esc(t.minutes) + ' 分' : '−') + '</dd>' +
@@ -1779,12 +1861,12 @@ function detailModal(t, focusAsk) {
     (t.repeatLabel ? '<dt>繰り返し</dt><dd>🔁 ' + esc(t.repeatLabel) + '<div class="hint">次の復活: ' + fmtYmd(t.nextRevive.slice(0, 10)) + ' ' + t.nextRevive.slice(11) + '（締切 ' + fmtYmd(t.nextDue) + '）</div></dd>' : '') +
     '<dt>種類</dt><dd>' + (t.kind === 'all' ? '全社' : t.kind === 'team' ? 'チーム' : '個人') + (t.important ? '・重要' : '') + '</dd>' + (t.scope === 'share' ? '<dt>相手</dt><dd>' + people + '</dd>' : '') + '</dl>' +
     historyHtml(t) +
-    '<h4 style="margin:14px 0 8px;font-size:13px">質問・返事</h4><div class="thread" id="thread">' + threadHtml(t.comments) + '</div>' +
+    '<h4 style="margin:14px 0 8px;font-size:13px">質問・返事</h4><div class="thread" id="thread">' + (t.loading ? '<p class="hint" style="margin:0">読み込み中…</p>' : threadHtml(t.comments)) + '</div>' +
     (canWrite(t) ? '' : '<p class="hint" style="margin:0">見るだけです（質問・返事はタスクの発信者と相手だけが書けます）</p>') +
     '<div class="ask' + (canWrite(t) ? '' : ' hide') + '"><textarea id="askText" placeholder="' + (t.isCreator ? '返事や補足を書く（相手に届きます）' : '質問を書く（' + esc(t.creatorName) + ' さんに届きます）') + '"></textarea><button class="btn primary" id="askSend">送る</button></div></div>' +
-    '<div class="mf">' + (t.isCreator || (S.me && S.me.isAdmin) ? '<button class="btn danger" id="dDel">削除</button><button class="btn" id="dEdit">変更</button>' : '') + (canReset(t) ? '<button class="btn" id="dReset" title="完了した人を0人に戻して、全員のボードにもう一度出す">↺ 完了をリセット</button>' : '') + (t.isCreator && t.scope === 'share' && t.doneCount < t.assignees.length ? '<button class="btn" id="dRemind" title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + '<span class="sp"></span><button class="btn" data-close>閉じる</button>' +
+    '<div class="mf">' + (t.isCreator || (S.me && S.me.isAdmin) ? '<button class="btn danger" id="dDel">削除</button><button class="btn" id="dEdit">変更</button><button class="btn" id="dCopy" title="この内容で新しいタスクを作る（元のタスクはそのまま）">⧉ 複製</button>' : '') + (canReset(t) ? '<button class="btn" id="dReset" title="完了した人を0人に戻して、全員のボードにもう一度出す">↺ 完了をリセット</button>' : '') + (t.isCreator && t.scope === 'share' && othersOpen(t) ? '<button class="btn" id="dRemind" title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + '<span class="sp"></span><button class="btn" data-close>閉じる</button>' +
     (t.myStatus === 'open' ? '<button class="btn primary" id="dDone">✓ 完了にする</button>' : t.myStatus === 'done' ? '<button class="btn" id="dReopen">未完了に戻す</button>' : '') + '</div>';
-  var bg = modal(html, function (bg) {
+  return modal(html, function (bg) {
     var th = bg.querySelector('#thread'); th.scrollTop = th.scrollHeight;
     if (focusAsk) bg.querySelector('#askText').focus();
     bg.querySelector('#askSend').onclick = function () {
@@ -1795,6 +1877,7 @@ function detailModal(t, focusAsk) {
     var d = bg.querySelector('#dDone'); if (d) d.onclick = function () { bg.remove(); doComplete(t.id); };
     var r = bg.querySelector('#dReopen'); if (r) r.onclick = function () { call('reopenTask', t.id).then(function () { bg.remove(); toast('未完了に戻しました'); reloadBoard(); if (S.tab === 'done') loadDone(); }).catch(fail); };
     var e = bg.querySelector('#dEdit'); if (e) e.onclick = function () { bg.remove(); editModal(t); };
+    var cp = bg.querySelector('#dCopy'); if (cp) cp.onclick = function () { bg.remove(); copyToForm(t); };
     var rm = bg.querySelector('#dRemind'); if (rm) rm.onclick = function () { bg.remove(); doRemind(t.id); };
     var rs = bg.querySelector('#dReset'); if (rs) rs.onclick = function () { bg.remove(); doReset(t); };
     var x = bg.querySelector('#dDel'); if (x) x.onclick = function () {
@@ -1802,7 +1885,7 @@ function detailModal(t, focusAsk) {
         b2.querySelector('#delYes').onclick = function () { call('deleteTask', t.id).then(function () { b2.remove(); bg.remove(); S.board = S.board.filter(function (y) { return y.id !== t.id; }); S.sent = S.sent.filter(function (y) { return y.id !== t.id; }); renderBoard(); updateBadges(); if (S.tab === 'sent') renderSent(); if (S.tab === 'done') loadDone(); toast('削除しました'); }).catch(fail); };
       });
     };
-  });
+  }, into);
 }
 // 履歴（発信者・管理者だけ）: 人ごとに 今回・前回・前々回 の開封と完了。締切に遅れた回は赤
 function historyHtml(t) {
@@ -1823,6 +1906,7 @@ function historyHtml(t) {
   }).join('');
   return '<h4 style="margin:14px 0 4px;font-size:13px">履歴（今回と前2回）<span class="hint" style="font-weight:normal">　発信者だけに見えます・遅れ＝前の回で締切に間に合わなかった回数</span></h4><div class="hist"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
 }
+function othersOpen(t) { return t.assignees.some(function (a) { return a.email !== t.creator && a.status !== 'done'; }); } // リマインドを送れる相手（発信者自身は除く）
 function canWrite(t) { return t.isCreator || (S.me && S.me.isAdmin) || t.assignees.some(function (a) { return S.me && a.email === S.me.email; }); }
 function threadHtml(list) {
   if (!list || !list.length) return '<p class="hint" style="margin:0">まだ書き込みはありません</p>';
@@ -1835,12 +1919,12 @@ function editModal(t) {
     '<div class="field"><label>見出し</label><input id="eTitle" type="text" value="' + esc(t.title) + '"></div>' +
     '<div class="field"><label>内容</label><textarea id="eBody" rows="4">' + esc(t.body) + '</textarea></div>' +
     '<div class="row2"><div class="field"><label>締切</label><input id="eDue" type="date" value="' + esc(t.due) + '"></div><div class="field"><label>時刻（任意）</label><input id="eDueTime" type="time" value="' + esc(t.dueTime) + '"></div></div>' +
-    '<div class="row2"><div class="field"><label>所要時間（分）</label><input id="eMins" type="number" min="1" step="5" value="' + esc(t.minutes) + '"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="eImportant" style="width:auto;height:auto;margin:0"' + (t.important ? ' checked' : '') + '>重要タスク（ピンク）</label></div></div>' +
-    '<div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="eRepeat">' + [['', 'しない'], ['weekly', '毎週'], ['biweekly', '隔週'], ['monthly', '毎月（同じ日）'], ['monthend', '毎月 月末']].map(function (o) { return '<option value="' + o[0] + '"' + (repeatKindOf(t.repeat) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div class="field"><label>復活する日</label><select id="eLead"></select></div></div><div class="rpv hide" id="eRepeatPv"></div>' +
+    '<div class="row2"><div class="field"><label>所要時間（分）</label><input id="eMins" type="number" min="1" step="1" value="' + esc(t.minutes) + '"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="eImportant" style="width:auto;height:auto;margin:0"' + (t.important ? ' checked' : '') + '>重要タスク（ピンク）</label></div></div>' +
+    '<div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="eRepeat">' + [['', 'しない'], ['weekly', '毎週'], ['biweekly', '隔週'], ['monthly', '毎月（同じ日）'], ['monthend', '毎月 月末'], ['nthwd', '毎月 第◯ ◯曜日'], ['lastwd', '毎月 最後の◯曜日']].map(function (o) { return '<option value="' + o[0] + '"' + (repeatKindOf(t.repeat) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div class="field"><label>復活する日</label><select id="eLead"></select></div></div><div class="rpv hide" id="eRepeatPv"></div>' +
     '<div class="field"><label>リンク</label><input id="eLink" type="url" value="' + esc(t.link) + '"></div>' +
     (t.scope === 'share' ? '<div class="field"><label>相手を足す（外すことはできません）</label><div class="chips" id="eTo">' + others.map(function (m) { return '<button class="chip' + (cur[m.email] ? ' on' : '') + '" data-e="' + esc(m.email) + '"' + (cur[m.email] ? ' disabled' : '') + '>' + esc(m.name) + '</button>'; }).join('') + '</div></div>' : '') +
     '</div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn primary" id="eSave">保存</button></div>', function (bg) {
-    var add = {};
+    var add = {}; minsStepper(bg.querySelector('#eMins'));
     var eR = bg.querySelector('#eRepeat'), eL = bg.querySelector('#eLead'), ePv = bg.querySelector('#eRepeatPv'), eD = bg.querySelector('#eDue');
     function ePrev() { ePv.innerHTML = repeatPreview(eR.value, eL.value, eD.value); ePv.classList.toggle('hide', !eR.value); }
     fillLead(eL, eR.value, t.repeatLead || 0); ePrev();
@@ -1862,7 +1946,7 @@ function renderSent() {
     return '<tr class="row" data-id="' + esc(t.id) + '"><td class="mono" style="white-space:nowrap;' + (c === 'late' && !waiting ? 'color:var(--danger)' : '') + '">' + esc(dueLabel(t)) + (t.nextRevive ? '<div class="rpt" title="' + esc(t.repeatLabel) + '">🔁 次の復活 ' + fmtYmd(t.nextRevive.slice(0, 10)) + ' ' + t.nextRevive.slice(11) + '</div>' : '') + (waiting ? '<span class="tag wait">全員完了・復活待ち</span>' : '') + '</td><td><div class="nm">' + esc(t.title) + '</div>' + (t.body ? '<div class="sub">' + esc(t.body.slice(0, 60)) + '</div>' : '') + '</td>' +
       '<td style="font-size:12.5px">' + t.assignees.map(function (a) { return '<span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '" title="' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' : a.seenAt ? '開いたが未対応' : 'まだ開いていない') + '">' + esc(a.name) + '</span>'; }).join(' ') + '</td>' +
       '<td class="mono">' + t.doneCount + ' / ' + t.assignees.length + '</td><td>' + (t.unread ? '<span class="tag late">返事待ち ' + t.unread + '</span>' : t.comments ? '<span class="hint">' + t.comments + ' 件</span>' : '') + '</td>' +
-      '<td style="white-space:nowrap">' + (t.doneCount ? '<button class="btn sm" data-reset title="完了した人を0人に戻す">↺ リセット</button> ' : '') + (t.doneCount < t.assignees.length ? '<button class="btn sm" data-remind title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + (lastRemind(t) ? '<div class="hint" style="margin-top:3px">送信 ' + fmtDt(lastRemind(t)) + '</div>' : '') + '</td></tr>';
+      '<td style="white-space:nowrap">' + (t.doneCount ? '<button class="btn sm" data-reset title="完了した人を0人に戻す">↺ リセット</button> ' : '') + (othersOpen(t) ? '<button class="btn sm" data-remind title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + (lastRemind(t) ? '<div class="hint" style="margin-top:3px">送信 ' + fmtDt(lastRemind(t)) + '</div>' : '') + '</td></tr>';
   }).join('');
   $('sentEmpty').classList.toggle('hide', !!list.length);
   $('sentCount').textContent = list.length ? list.length + ' 件' : '';
