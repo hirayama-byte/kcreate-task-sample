@@ -386,6 +386,7 @@
           <div class="card-h"><h2>完了したタスク</h2><span class="sp"></span><input id="doneMonth" type="month" style="width:160px"><button class="btn sm" id="doneAll">すべて</button></div>
           <div class="tbl"><table><thead><tr><th>完了日時</th><th>見出し</th><th>種類</th><th>発信者</th><th>締切</th><th></th></tr></thead><tbody id="doneBody"></tbody></table></div>
           <div class="empty hide" id="doneEmpty">完了したタスクはまだありません</div>
+          <p class="hint hide" id="doneArchived" style="margin:8px 14px 12px"></p>
         </div>
       </section>
 
@@ -423,7 +424,7 @@
   Sheet.prototype.getName = function () { return this.name; };
   Sheet.prototype.setName = function (n) { this.name = n; return this; };
   Sheet.prototype.getMaxRows = function () { return Math.max(this.data.length, 1000); };
-  Sheet.prototype.getLastRow = function () { return this.data.length; };
+  Sheet.prototype.getLastRow = function () { for (var i = this.data.length - 1; i >= 0; i--) if (this.data[i].some(function (v) { return v !== '' && v != null; })) return i + 1; return 0; }; // 本物と同じく、下の空の行は数えない
   Sheet.prototype.getLastColumn = function () { return this.data.reduce(function (m, r) { return Math.max(m, r.length); }, 0); };
   Sheet.prototype.getDataRange = function () { return new Range(this, 1, 1, Math.max(this.getLastRow(), 1), Math.max(this.getLastColumn(), 1)); };
   Sheet.prototype.appendRow = function (r) { this.data.push(this._conv(r.slice(), 1)); return this; };
@@ -647,7 +648,7 @@ var TASK_HEAD = ['id', 'title', 'body', 'due', 'due_time', 'minutes', 'link', 'c
 // kind: self（個人）/ team（チーム＝選んだ相手）/ all（全社＝名前登録済みの全員）。important=1 は重要（色はピンクが優先）
 // scope: self（自分用）/ share（社内メンバーに共有）。status: open / done / deleted。due は yyyy-MM-dd の文字・due_time は HH:mm の文字（空でも可）
 var ASSIGN_HEAD = ['task_id', 'email', 'status', 'done_at', 'assigned_at', 'seen_at', 'remind_at', 'remind_seen']; // 共有タスクの担当者ごとの状態。status: open / done。remind_at=発信者がリマインドを押した日時・remind_seen=本人が「確認した」日時
-var COMMENT_HEAD = ['id', 'task_id', 'email', 'body', 'created', 'unread', 'edited']; // unread = まだ読んでいない人のメール（, 区切り）
+var COMMENT_HEAD = ['id', 'task_id', 'email', 'body', 'created', 'unread', 'edited', 'deleted']; // deleted = 削除した日時（行は消さない・2026-11-03） // unread = まだ読んでいない人のメール（, 区切り）
 var HISTORY_HEAD = ['task_id', 'due', 'due_time', 'email', 'seen_at', 'done_at', 'closed_at', 'how']; // 前の回の開封・完了（繰り返しの復活／リセットのときに記録・タスクごとに直近 HISTORY_KEEP 回だけ残す）。how: auto（復活）/ reset（リセットボタン）
 var HISTORY_KEEP = 2;
 var MEMBER_HEAD = ['email', 'name', 'title'];
@@ -685,6 +686,13 @@ function doGet(e) {
     if (typeof Gmail !== 'undefined') Gmail.Users.Labels.get('me', 'INBOX');
     var back = ScriptApp.getService().getUrl();
     return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;max-width:460px;margin:60px auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;line-height:1.8"><h2 style="margin:0 0 8px;font-size:18px">許可が完了しました</h2><p style="margin:0 0 16px;color:#475569;font-size:14px">タスク管理に戻ってください。</p><a href="' + back + '" target="_top" style="display:inline-block;background:#0d9488;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:bold">タスク管理に戻る</a></div>').setTitle('タスク管理：許可が完了しました');
+  }
+  // ?setup=archive&months=12: 管理者が手で実行する書庫への移動（自動では動かない）
+  if (e && e.parameter && e.parameter.setup === 'archive') {
+    var lines;
+    if (!isAdmin_(myEmail_())) lines = ['管理者だけが実行できます'];
+    else { var r = archiveOld(e.parameter.months); lines = ['書庫に移しました（' + r.cut + ' より前に完了・削除したタスク）', 'タスク ' + (r.moved.tasks || 0) + ' 件・担当 ' + (r.moved.assignments || 0) + ' 行・質問 ' + (r.moved.comments || 0) + ' 行・履歴 ' + (r.moved.history || 0) + ' 行', '移したものは同じスプレッドシートの archive_ で始まるシートに残っています（消していません）']; }
+    return HtmlService.createHtmlOutput('<pre style="font-size:14px;line-height:1.7">' + lines.join('\n') + '</pre>').setTitle('書庫に移す');
   }
   if (e && e.parameter && e.parameter.setup === 'staff') return HtmlService.createHtmlOutput('<pre style="font-size:14px;line-height:1.7">' + syncStaff_().join('\n') + '</pre>').setTitle('名簿から登録');
   return HtmlService.createTemplateFromFile('index').evaluate()
@@ -753,17 +761,23 @@ function str_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-
 function hmOf_(v) { if (v instanceof Date) return Utilities.formatDate(v, TZ, 'HH:mm'); var s = String(v == null ? '' : v).trim(), m = s.match(/(\d{1,2}):(\d{2})/); return m ? ('0' + m[1]).slice(-2) + ':' + m[2] : s; }
 function ymdOf_(v) { return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v == null ? '' : v).slice(0, 10); }
 var memo_ = {};
-function bust_(name) { delete memo_[name]; }
+function bust_(name) { delete memo_[name]; delete memo_['@' + name]; }
+// 速さ（2026-11-03）: 付箋1枚ごとに全行を絞り込まないよう、1回の呼び出しで1度だけ索引を作る（bust_ で作り直し）
+function idx_(name, build) { var k = '@' + name; return memo_[k] || (memo_[k] = build(rows_(name))); }
+function commentLive_(r) { return !String(r[7] || ''); }
+function assignIdx_() { return idx_('assignments', function (rows) { var m = {}; rows.forEach(function (r) { var k = String(r[0]); (m[k] = m[k] || []).push(r); }); return m; }); }
+function commentIdx_() { return idx_('comments', function (rows) { var m = {}; rows.forEach(function (r) { if (!commentLive_(r)) return; var k = String(r[1]), o = m[k] || (m[k] = { count: 0, unread: {} }); o.count++; String(r[5] || '').split(',').filter(String).forEach(function (e) { o.unread[e] = (o.unread[e] || 0) + 1; }); }); return m; }); }
+function memberMap_() { return idx_('members', function (rows) { var m = {}; rows.forEach(function (r) { var e = String(r[0]).toLowerCase(); if (!m[e]) m[e] = r; }); return m; }); }
 function rows_(name) {
   if (memo_[name]) return memo_[name];
   var v = sheet_(name).getDataRange().getValues(); // 1回で読む（行数・列数を別々に聞かない）
   memo_[name] = v.slice(1);
   return memo_[name];
 }
-function settings_() { var o = {}; rows_('settings').forEach(function (r) { o[String(r[0])] = String(r[1]); }); return o; }
+function settings_() { var o = {}; rows_('settings').forEach(function (r) { o[String(r[0])] = r[1] instanceof Date ? ymdOf_(r[1]) : String(r[1]); }); return o; } // 日付に化けた値は yyyy-MM-dd に戻す
 function isAdmin_(email) { return rows_('admins').some(function (r) { return String(r[0]).toLowerCase() === email; }); }
 function member_(email) {
-  var r = rows_('members').filter(function (x) { return String(x[0]).toLowerCase() === email; })[0];
+  var r = memberMap_()[email];
   return { email: email, name: r ? String(r[1]) : '', title: r ? String(r[2] || '') : '' };
 }
 function nameOf_(email) { var m = member_(String(email || '').toLowerCase()); return m.name || String(email || '').split('@')[0]; }
@@ -813,7 +827,7 @@ function init() {
     appUrl: (function () { try { return ScriptApp.getService().getUrl(); } catch (err) { return ''; } })(),
     members: membersList_(),
     links: links_(),
-    settings: { company: s.company || '', remind_minutes: Number(s.remind_minutes || 5), cal_from: Number(s.cal_from || 8), cal_to: Number(s.cal_to || 20) },
+    settings: { company: s.company || '', remind_minutes: Number(s.remind_minutes || 5), cal_from: Number(s.cal_from || 8), cal_to: Number(s.cal_to || 20), archived_before: s.archived_before || '' },
     kinds: KINDS,
     today: today_(),
     board: me.name ? (rollRepeats_(), board_(email)) : [],
@@ -917,13 +931,13 @@ function tasksMap_() {
   return m;
 }
 function assignsOf_(taskId) {
-  return rows_('assignments').filter(function (r) { return String(r[0]) === taskId; })
+  return (assignIdx_()[taskId] || [])
     .map(function (r) { return { email: String(r[1]).toLowerCase(), name: nameOf_(r[1]), status: String(r[2]) || 'open', doneAt: str_(r[3]), assignedAt: str_(r[4]), seenAt: str_(r[5]), remindAt: str_(r[6]), remindSeen: str_(r[7]) }; });
 }
 function unreadCount_(taskId, email) {
-  return rows_('comments').filter(function (r) { return String(r[1]) === taskId && (',' + String(r[5] || '') + ',').indexOf(',' + email + ',') >= 0; }).length;
+  var o = commentIdx_()[taskId]; return o ? (o.unread[email] || 0) : 0;
 }
-function commentCount_(taskId) { return rows_('comments').filter(function (r) { return String(r[1]) === taskId; }).length; }
+function commentCount_(taskId) { var o = commentIdx_()[taskId]; return o ? o.count : 0; }
 function decorate_(t, email) {
   var o = JSON.parse(JSON.stringify(t));
   o.creatorName = nameOf_(t.creator);
@@ -985,6 +999,54 @@ function setOverviewViewers(list) {
   bust_('settings');
   return out;
 }
+// ---------- 書庫（アーカイブ・2026-11-03） ----------
+// 完了（全員完了）か削除してから months か月より前のタスクを、担当・質問・履歴ごと同じスプレッドシートの archive_ シートへ移す。
+// 毎回の読み込みが軽くなる。繰り返しのタスクは（削除していなければ）移さない。何度実行しても同じ結果（移すものが無ければ何もしない）。
+var ARCHIVE_COL = { tasks: 0, assignments: 0, comments: 1, history: 0 }; // タスクIDの列
+function archiveSheet_(name, src) {
+  var ss = ss_(), an = 'archive_' + name, sh = ss.getSheetByName(an);
+  if (sh) return sh;
+  sh = ss.insertSheet(an);
+  var head = src.getRange(1, 1, 1, src.getLastColumn()).getValues()[0].concat(['archived_at']);
+  sh.getRange(1, 1, 1, head.length).setValues([head]);
+  sh.getRange(1, 1, Math.max(sh.getMaxRows(), 1), head.length).setNumberFormat('@'); // 日時を文字のまま残す
+  return sh;
+}
+function monthsAgo_(months) { var p = ymdParts_(today_()); return ymdStr_(p.y, p.m - months, p.d); }
+function archiveOld(months) {
+  if (!isAdmin_(myEmail_())) throw new Error('管理者だけが実行できます');
+  months = Math.max(3, Math.floor(Number(months) || 12)); // 3か月より短くはしない
+  var cut = monthsAgo_(months), lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    memo_ = {}; // 待っている間の書き込みも含めて読み直す
+    var ids = {};
+    rows_('tasks').forEach(function (r) {
+      var t = taskObj_(r), when = t.status === 'deleted' ? t.updated : t.status === 'done' ? (t.doneAt || t.updated) : '';
+      if (!when || (t.repeat && t.status !== 'deleted')) return;
+      if (when.slice(0, 10) < cut) ids[t.id] = 1;
+    });
+    var moved = {}, ts = now_();
+    if (Object.keys(ids).length) Object.keys(ARCHIVE_COL).forEach(function (name) {
+      var sh = sheet_(name); if (!sh || sh.getLastRow() < 2) return;
+      var w = sh.getLastColumn(), rows = sh.getRange(2, 1, sh.getLastRow() - 1, w).getValues(), keep = [], out = [];
+      rows.forEach(function (r) { (ids[String(r[ARCHIVE_COL[name]])] ? out : keep).push(r); });
+      if (!out.length) return;
+      var ash = archiveSheet_(name, sh), aw = ash.getLastColumn();
+      var outRows = out.map(function (r) { var x = r.map(function (v) { return v instanceof Date ? str_(v) : v; }); while (x.length < aw - 1) x.push(''); return x.slice(0, aw - 1).concat([ts]); });
+      ash.getRange(ash.getLastRow() + 1, 1, outRows.length, aw).setValues(outRows);
+      sh.getRange(2, 1, rows.length, w).clearContent(); // 残すものだけ上から書き直す（行は削除しない）
+      if (keep.length) sh.getRange(2, 1, keep.length, w).setValues(keep);
+      moved[name] = out.length;
+    });
+    var sh = sheet_('settings'), srows = rows_('settings'), row = 0;
+    for (var i = 0; i < srows.length; i++) if (String(srows[i][0]) === 'archived_before') { row = i + 2; break; }
+    var prev = row ? String(srows[row - 2][1]) : '';
+    if (prev instanceof Date || /GMT/.test(prev)) prev = ymdOf_(srows[row - 2][1]);
+    if (moved.tasks && cut > prev) { if (!row) { sh.appendRow(['archived_before', '']); row = sh.getLastRow(); } sh.getRange(row, 2).setNumberFormat('@').setValue(cut); }
+    memo_ = {};
+    return { cut: cut, moved: moved };
+  } finally { lock.releaseLock(); }
+}
 // 一人分の状況（残っているタスクを 個人/チーム/全社 に分けて・遅れ・未開封・返事待ち など）
 function personStatus_(email, tasks, nowS, today, tomorrow, since) {
   var st = { open: 0, self: 0, team: 0, all: 0, important: 0, late: 0, soon: 0, unseen: 0, unseenSoon: 0, minutes: 0, week: 0, waiting: 0, unread: 0, remind: 0, lateDone: 0, lateTasks: [] };
@@ -1015,7 +1077,7 @@ function personStatus_(email, tasks, nowS, today, tomorrow, since) {
   });
   // 返事待ち: 自分が書いた質問が、そのタスクの最後の書き込みのまま（発信者からまだ返事がない）
   var last = {};
-  rows_('comments').forEach(function (r) { var id = String(r[1]); if (!openIds[id]) return; if (!last[id] || str_(r[4]) >= last[id].at) last[id] = { at: str_(r[4]), by: String(r[2]).toLowerCase() }; if ((',' + String(r[5] || '') + ',').indexOf(',' + email + ',') >= 0) st.unread++; });
+  rows_('comments').forEach(function (r) { var id = String(r[1]); if (!openIds[id] || !commentLive_(r)) return; if (!last[id] || str_(r[4]) >= last[id].at) last[id] = { at: str_(r[4]), by: String(r[2]).toLowerCase() }; if ((',' + String(r[5] || '') + ',').indexOf(',' + email + ',') >= 0) st.unread++; });
   Object.keys(last).forEach(function (id) { if (last[id].by === email && tasks[id].creator !== email) st.waiting++; });
   return st;
 }
@@ -1333,18 +1395,20 @@ function setDone_(id, done) {
 // 完了したタスク（自分が完了したもの・新しい順）。month='yyyy-MM' で絞れる
 function listDone(month) {
   var email = myEmail_(), tasks = tasksMap_(), out = [], seen = {};
+  function inMonth(finished) { return !month || String(finished).slice(0, 7) === month; } // 速さ（2026-11-03）: 月で先に絞ってから飾る
   rows_('assignments').forEach(function (r) {
     if (String(r[1]).toLowerCase() !== email || String(r[2]) !== 'done') return;
     var t = tasks[String(r[0])]; if (!t) return;
     if (t.creator === email && t.status === 'done') return; // 自分が発信して全員完了したものは下で「発信（全員完了）」として出す
-    var o = decorate_(t, email); o.kind = 'assigned'; o.finished = str_(r[3]); out.push(o); seen[t.id] = 1;
+    seen[t.id] = 1;
+    if (!inMonth(str_(r[3]))) return;
+    var o = decorate_(t, email); o.kind = 'assigned'; o.finished = str_(r[3]); out.push(o);
   });
   Object.keys(tasks).forEach(function (id) {
     var t = tasks[id];
-    if (seen[id] || t.creator !== email || t.status !== 'done') return;
+    if (seen[id] || t.creator !== email || t.status !== 'done' || !inMonth(t.doneAt)) return;
     var o = decorate_(t, email); o.kind = t.scope === 'self' ? 'self' : 'sent'; o.finished = t.doneAt; out.push(o);
   });
-  if (month) out = out.filter(function (o) { return String(o.finished).slice(0, 7) === month; });
   return out.sort(function (a, b) { return a.finished < b.finished ? 1 : a.finished > b.finished ? -1 : 0; });
 }
 
@@ -1358,12 +1422,13 @@ function getTask(id) {
   for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email && !String(arows[i][5] || '')) { var ts = now_(); ash.getRange(i + 2, 6).setValue(ts); arows[i][5] = ts; break; }
   var csh = sheet_('comments'), crows = rows_('comments'), comments = [];
   crows.forEach(function (r, i) {
-    if (String(r[1]) !== id) return;
+    if (String(r[1]) !== id || !commentLive_(r)) return;
     var unread = String(r[5] || '').split(',').filter(String);
     var wasUnread = unread.indexOf(email) >= 0;
     if (wasUnread) { unread = unread.filter(function (e) { return e !== email; }); csh.getRange(i + 2, 6).setValue(unread.join(',')); r[5] = unread.join(','); }
     comments.push({ id: String(r[0]), email: String(r[2]).toLowerCase(), name: nameOf_(r[2]), body: String(r[3]), created: str_(r[4]), edited: str_(r[6]), mine: String(r[2]).toLowerCase() === email, wasUnread: wasUnread });
   });
+  delete memo_['@comments']; // 既読にした行をそのまま書き換えたので、未読の索引は作り直す
   var o = decorate_(t, email);
   o.comments = comments; o.unread = 0;
   if (t.creator === email || isAdmin_(email)) { // 発信者・管理者だけ: 今回と前の回（最大 HISTORY_KEEP 回）の開封・完了
@@ -1393,7 +1458,7 @@ function addComment(id, body) {
 // 自分が書いた質問・返事の編集・削除（書いた本人だけ・2026-11-02）
 function myComment_(cid) {
   var email = myEmail_(), rows = rows_('comments');
-  for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === String(cid)) {
+  for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === String(cid) && commentLive_(rows[i])) {
     if (String(rows[i][2]).toLowerCase() !== email) throw new Error('自分が書いたものだけ編集・削除できます');
     return { row: i + 2, r: rows[i], email: email };
   }
@@ -1407,21 +1472,26 @@ function editComment(cid, body) {
   var people = {}; people[t.creator] = 1; assignsOf_(id).forEach(function (a) { people[a.email] = 1; });
   delete people[c.email];
   var sh = sheet_('comments');
-  if (sh.getLastColumn() < COMMENT_HEAD.length) { sh.getRange(1, 1, 1, COMMENT_HEAD.length).setValues([COMMENT_HEAD]); sh.getRange(1, 7, Math.max(sh.getMaxRows(), 1), 1).setNumberFormat('@'); } // 後から足した列（edited）
+  commentCols_(sh);
   sh.getRange(c.row, 4).setValue(body);
   sh.getRange(c.row, 6, 1, 2).setValues([[Object.keys(people).join(','), now_()]]);
   bust_('comments');
   return getTask(id);
 }
+// 削除: 行は消さずに「削除した日時」を入れる（行がずれて他の人の既読が別の行に書かれるのを防ぐ・2026-11-03）
 function deleteComment(cid) {
-  var lock = LockService.getScriptLock(); lock.waitLock(20000);
-  try {
-    memo_ = {}; // 待っている間に他の人が書いたかもしれないので読み直す（行番号がずれないように）
-    var c = myComment_(cid), id = String(c.r[1]);
-    sheet_('comments').deleteRow(c.row);
-    bust_('comments');
-  } finally { lock.releaseLock(); }
+  var c = myComment_(cid), id = String(c.r[1]), sh = sheet_('comments');
+  commentCols_(sh);
+  sh.getRange(c.row, 6).setValue('');
+  sh.getRange(c.row, 8).setValue(now_());
+  bust_('comments');
   return getTask(id);
+}
+// 後から足した列（edited・deleted）の見出しと書式（日時が日付に化けないよう文字に）
+function commentCols_(sh) {
+  if (sh.getLastColumn() >= COMMENT_HEAD.length && String(sh.getRange(1, COMMENT_HEAD.length).getValue()) === COMMENT_HEAD[COMMENT_HEAD.length - 1]) return;
+  sh.getRange(1, 1, 1, COMMENT_HEAD.length).setValues([COMMENT_HEAD]);
+  sh.getRange(1, 7, Math.max(sh.getMaxRows(), 1), 2).setNumberFormat('@');
 }
 
 // ---------- 本日のスケジュール（開いた本人のカレンダー） ----------
@@ -2144,6 +2214,8 @@ function loadDone() {
   var month = $('doneMonth').value;
   $('doneBody').innerHTML = '<tr><td colspan="6" class="hint">読み込み中…</td></tr>';
   call('listDone', month || '').then(function (list) {
+    var ab = (S.settings && S.settings.archived_before) || '', note = $('doneArchived'); // 書庫に移した古いタスクは、ここには出ない（2026-11-03）
+    if (note) { var show = ab && (!month || month <= ab.slice(0, 7)); note.textContent = show ? '※ ' + fmtYmd(ab) + ' より前に完了したタスクは書庫に移しました（管理者がスプレッドシートの archive_ シートで見られます）' : ''; note.classList.toggle('hide', !show); }
     $('doneBody').innerHTML = list.map(function (t) {
       var kind = t.kind === 'self' ? '自分用' : t.kind === 'assigned' ? '共有（自分の分）' : '発信（全員完了）';
       return '<tr class="row" data-id="' + esc(t.id) + '"><td class="mono" style="white-space:nowrap">' + fmtDt(t.finished) + '</td><td><div class="nm">' + esc(t.title) + '</div>' + (t.body ? '<div class="sub">' + esc(t.body.slice(0, 60)) + '</div>' : '') + '</td><td><span class="tag done">' + kind + '</span></td><td>' + esc(t.creatorName) + '</td><td class="mono">' + esc(t.due ? fmtYmd(t.due) : '−') + '</td>' +
@@ -2249,10 +2321,23 @@ function authBox(what) {
 $('mailReload').onclick = function () { loadMail().then(function () { toast('更新しました'); }); };
 
 // ---------- リマインド（画面を開いている間だけ） ----------
+// 速さ（2026-11-03）: 裏に回したタブ（見ていない画面）では自動更新しない。表に戻したとき、前の更新から間隔がたっていれば1回だけ更新する
+function autoRefresh() {
+  S.lastAuto = Date.now();
+  reloadBoard().then(function () { loadMail(); if ((S.calDate || S.today) === S.today) loadCal(true); }).catch(function () {});
+}
 function startTimer() {
   if (S.timer) clearInterval(S.timer);
   var min = Math.max(1, Number(S.settings.remind_minutes) || 5);
-  S.timer = setInterval(function () { reloadBoard().then(function () { loadMail(); if ((S.calDate || S.today) === S.today) loadCal(true); }).catch(function () {}); }, min * 60000);
+  S.lastAuto = Date.now();
+  S.timer = setInterval(function () { if (document.hidden) return; autoRefresh(); }, min * 60000);
+  if (!S.visHooked) {
+    S.visHooked = true;
+    document.addEventListener('visibilitychange', function () {
+      var m = Math.max(1, Number(S.settings.remind_minutes) || 5) * 60000;
+      if (!document.hidden && Date.now() - (S.lastAuto || 0) >= m) autoRefresh();
+    });
+  }
 }
 // 発信者が「リマインド」を押したタスクだけ、担当者（未完了）にポップアップ。「確認した」で消える
 function showReminders(list) {
