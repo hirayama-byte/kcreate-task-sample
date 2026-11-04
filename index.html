@@ -46,9 +46,9 @@
   .side-sec button { margin-left: auto; border: 0; background: none; color: #64748b; font: inherit; font-size: 11px; cursor: pointer; }
   .side-sec button:hover { color: var(--side-hi); }
   .spacer { flex: 1; }
-  #linksWrap { flex: none; border-top: 1px solid var(--side-line); padding-top: 4px; display: flex; flex-direction: column; min-height: 0; } /* 他のツールと同じく左下から詰める */
-  #links { padding: 0 10px 8px; overflow: auto; max-height: 42vh; }
-  #links a { display: flex; align-items: center; gap: 10px; color: var(--side-text); text-decoration: none; font-size: 13px; padding: 7px 12px; border-radius: 8px; }
+  #linksWrap { flex: 1 1 auto; margin-top: 8px; border-top: 1px solid var(--side-line); padding-top: 4px; display: flex; flex-direction: column; min-height: 0; } /* 区切りはメニューのすぐ下（2026-11-04）。リンク集は残りの高さを全部使い、入りきらないときだけスクロール */
+  #links { padding: 0 10px 8px; overflow: auto; flex: 1 1 auto; min-height: 0; }
+  #links a { display: flex; align-items: center; gap: 10px; color: var(--side-text); text-decoration: none; font-size: 13px; padding: 5px 12px; border-radius: 8px; }
   #links a:hover { background: var(--side-2); color: var(--side-hi); }
   #links a svg { width: 16px; height: 16px; flex: none; opacity: .85; }
   #links a .ext { margin-left: auto; font-size: 11px; color: #64748b; }
@@ -236,7 +236,10 @@
   @media (max-width: 560px) { #tabs button svg { display: none; } #tabs button { font-size: 12px; padding: 7px 2px; gap: 3px; } #tabs button .bdg { padding: 0 5px; font-size: 10px; } }
   #tabs .st { display: none; } @media (max-width: 560px) { #tabs .lg { display: none; } #tabs .st { display: inline; } #tabs button { font-size: 12.5px; } }
   @media (max-width: 900px) { .vchecks { grid-template-columns: 1fr 1fr; } .ovsum button { padding: 6px 10px; } .ovsum button b { font-size: 17px; } }
-  .linkrows div { display: grid; grid-template-columns: 1fr 1.6fr auto; gap: 8px; margin-bottom: 8px; }
+  .linkrows > div { display: grid; grid-template-columns: 1fr 1.6fr auto auto auto auto; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .linkrows .btn.sm { padding: 0 8px; min-width: 30px; justify-content: center; }
+  .linkrows > div:first-child .lup, .linkrows > div:last-child .ldn { visibility: hidden; }
+  @media (max-width: 560px) { .linkrows > div { grid-template-columns: 1fr 1fr; } .linkrows .lu { grid-column: 1 / -1; grid-row: 2; } }
   @media (max-width: 1280px) {
     .dash { grid-template-columns: minmax(0, 1fr) 280px; }
     #calCard { grid-column: 2; grid-row: 2; } #mailCard { grid-column: 1; grid-row: 2; } #createCard { grid-column: 2; grid-row: 1; }
@@ -303,7 +306,6 @@
       <button data-tab="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span class="lg">完了したタスク</span><span class="st">完了</span></button>
       <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>設定</button>
     </nav>
-    <div class="spacer"></div>
     <div id="linksWrap"><div class="side-sec">リンク集<button id="linksEdit" class="hide" title="リンク集を編集">編集</button></div><div id="links"></div></div>
     <button class="me" id="meBtn"><span class="avatar" id="meAv">?</span><span><span id="meName">名前を登録</span><small id="meMail"></small></span><span class="edit-ico">変更</span></button>
   </aside>
@@ -1828,10 +1830,19 @@ function renderLinks() {
 }
 $('linksEdit').onclick = function () {
   var rows = S.links.length ? S.links : [{ label: '', url: '' }];
-  function rowHtml(l) { return '<div><input type="text" class="ll" placeholder="名前" value="' + esc(l.label) + '"><input type="url" class="lu" placeholder="https://" value="' + esc(l.url) + '"><button class="btn sm danger lx" title="この行を消す">×</button></div>'; }
-  modal('<div class="mh"><h3>リンク集の編集</h3></div><div class="mb"><p class="hint" style="margin:0 0 10px">上から順に左のメニューに並びます。空の行は保存時に外れます</p><div class="linkrows" id="lrows">' + rows.map(rowHtml).join('') + '</div><button class="btn sm" id="ladd">＋ 行を足す</button></div>' +
+  function rowHtml(l) { return '<div><input type="text" class="ll" placeholder="名前" value="' + esc(l.label) + '"><input type="url" class="lu" placeholder="https://" value="' + esc(l.url) + '">' +
+    '<button class="btn sm lup" title="1つ上へ">↑</button><button class="btn sm ldn" title="1つ下へ">↓</button><button class="btn sm lins" title="この下に行を挿入">＋</button><button class="btn sm danger lx" title="この行を消す">×</button></div>'; }
+  modal('<div class="mh"><h3>リンク集の編集</h3></div><div class="mb"><p class="hint" style="margin:0 0 10px">上から順に左のメニューに並びます。↑↓で並べ替え、＋でその行の下に新しい行を入れられます。空の行は保存時に外れます</p><div class="linkrows" id="lrows">' + rows.map(rowHtml).join('') + '</div><button class="btn sm" id="ladd">＋ 一番下に行を足す</button></div>' +
     '<div class="mf"><button class="btn" data-close>やめる</button><button class="btn primary" id="lsave">保存</button></div>', function (bg) {
-    function bind() { bg.querySelectorAll('.lx').forEach(function (b) { b.onclick = function () { b.parentNode.remove(); }; }); }
+    // 行の中身はそのまま DOM ごと動かす（入力途中の文字も消えない）
+    function bind() {
+      bg.querySelectorAll('#lrows > div').forEach(function (d) {
+        d.querySelector('.lx').onclick = function () { d.remove(); };
+        d.querySelector('.lup').onclick = function () { if (d.previousElementSibling) d.parentNode.insertBefore(d, d.previousElementSibling); };
+        d.querySelector('.ldn').onclick = function () { if (d.nextElementSibling) d.parentNode.insertBefore(d.nextElementSibling, d); };
+        d.querySelector('.lins').onclick = function () { d.insertAdjacentHTML('afterend', rowHtml({ label: '', url: '' })); bind(); d.nextElementSibling.querySelector('.ll').focus(); };
+      });
+    }
     bind();
     bg.querySelector('#ladd').onclick = function () { bg.querySelector('#lrows').insertAdjacentHTML('beforeend', rowHtml({ label: '', url: '' })); bind(); };
     bg.querySelector('#lsave').onclick = function () {
