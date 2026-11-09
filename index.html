@@ -155,6 +155,17 @@
   .board .empty { grid-column: 1 / -1; }
   .board.more::after { content: ""; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .wdpick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -4px 0 10px; font-size: 13px; }
+  .wdpick select { height: 32px; font-size: 13px; width: auto; }
+  .wdpick .hint { font-size: 12px; }
+  .teampick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 8px; padding: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; }
+  .teampick .tp-l { font-size: 12px; font-weight: 700; color: #3f6212; }
+  .teampick select { flex: 1 1 100%; order: 3; min-width: 0; height: 32px; font-size: 13px; } /* 名前が切れないよう1行使う */
+  .teampick .tp-l { flex: 1; white-space: nowrap; }
+  .teampick .btn { height: 28px; padding: 0 8px; font-size: 12px; }
+  .tchecks { max-height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 2px 10px; }
+  .tchecks label { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tchecks input { width: auto; height: auto; margin: 0; }
   .checks { max-height: 150px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; } /* 相手のチェック一覧（外したい人はチェックを外す） */
   .checks label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text); margin: 0; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 0; }
   .checks label.off { color: var(--faint); text-decoration: line-through; }
@@ -325,11 +336,12 @@
             <div class="field"><label>内容</label><textarea id="cBody" rows="2" placeholder="やることの説明"></textarea></div>
             <div class="row2"><div class="field"><label>締切</label><input id="cDue" type="date"></div><div class="field"><label>時刻（任意）</label><input id="cDueTime" type="time"></div></div>
             <div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="cRepeat"><option value="">しない</option><option value="weekly">毎週</option><option value="biweekly">隔週</option><option value="monthly">毎月（同じ日）</option><option value="monthend">毎月 月末</option><option value="nthwd">毎月 第◯ ◯曜日</option><option value="lastwd">毎月 最後の◯曜日</option></select></div><div class="field"><label>復活する日</label><select id="cLead" disabled><option value="0">当日の朝</option></select></div></div>
+            <div class="wdpick hide" id="cWdPick"></div>
             <div class="rpv hide" id="cRepeatPv"></div>
             <div class="row2"><div class="field"><label>所要時間（分）</label><input id="cMins" type="number" min="1" step="1" placeholder="例: 30"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="cImportant" style="width:auto;height:auto;margin:0">重要（ピンク）</label></div></div>
             <div class="field"><label>リンク（任意）</label><input id="cLink" type="url" placeholder="https://"></div>
             <div class="field"><label>誰のタスク</label><div class="seg"><button id="cSelf" class="on">個人</button><button id="cTeam">チーム</button><button id="cCompany">全社</button></div></div>
-            <div class="field hide" id="cToWrap"><label style="display:flex;align-items:center;gap:4px"><span id="cToLabel">共有する相手</span>（<b id="cToN">0</b> 人）<span style="flex:1"></span><button class="btn sm ghost" id="cAll" style="height:22px;padding:0 6px;font-size:11px">全員</button><button class="btn sm ghost" id="cNone" style="height:22px;padding:0 6px;font-size:11px">解除</button></label><div class="checks" id="cTo"></div><p class="hint" style="margin:8px 0 0">自分も対象として、自分のボードにも入ります</p></div>
+            <div class="field hide" id="cToWrap"><div class="teampick hide" id="cTeamRow"><span class="tp-l">チームから選ぶ</span><select id="cTeamSel" aria-label="保存したチーム"></select><button class="btn sm ghost" id="cTeamEdit" title="選んだチームを修正・削除">修正</button><button class="btn sm" id="cTeamNew" title="チーム名とメンバーを保存して、次から全員が選べるようにします">＋チームを作る</button></div><label style="display:flex;align-items:center;gap:4px"><span id="cToLabel">共有する相手</span>（<b id="cToN">0</b> 人）<span style="flex:1"></span><button class="btn sm ghost" id="cAll" style="height:22px;padding:0 6px;font-size:11px">全員</button><button class="btn sm ghost" id="cNone" style="height:22px;padding:0 6px;font-size:11px">解除</button></label><div class="checks" id="cTo"></div><p class="hint" style="margin:8px 0 0">自分も対象として、自分のボードにも入ります</p></div>
             <button class="btn primary" id="cSave" style="width:100%;justify-content:center">タスクを作成</button>
           </div>
         </div>
@@ -835,7 +847,8 @@ function init() {
     board: me.name ? (rollRepeats_(), board_(email)) : [],
     sent: me.name ? sent_(email) : [],
     reminders: me.name ? myReminders_(email) : [],
-    viewers: me.isAdmin ? viewers_() : [] // 全員の状況を見られる人（管理者の設定画面用）
+    viewers: me.isAdmin ? viewers_() : [], // 全員の状況を見られる人（管理者の設定画面用）
+    teams: teams_() // 保存したチーム（誰でも選べる・2026-11-09）
   };
 }
 function links_() {
@@ -1579,6 +1592,61 @@ function getMailApi_() {
   var inbox = Gmail.Users.Labels.get('me', 'INBOX');
   return { unread: Number(inbox.messagesUnread || 0), list: list, fetched: now_() };
 }
+
+// ---------- 保存したチーム（2026-11-09） ----------
+// 誰かが「チーム名＋メンバー」を保存すると、全員がタスクの作成で「チームから選ぶ」に使える。直す・消すのは作った人と管理者
+var TEAM_HEAD = ['id', 'name', 'members', 'creator', 'created', 'updated'];
+function teamSheet_() {
+  var sh = sheet_('teams'); if (sh) return sh;
+  sh = ensureSheet_(ss_(), 'teams', TEAM_HEAD); shMemo_ = {}; return sh;
+}
+function teams_() {
+  var sh = ss_().getSheetByName('teams'); if (!sh) return [];
+  var n = sh.getLastRow(); if (n < 2) return [];
+  var names = {}; membersList_().forEach(function (m) { names[m.email] = m.name; });
+  return sh.getRange(2, 1, n - 1, TEAM_HEAD.length).getValues().filter(function (r) { return r[0] && r[1]; }).map(function (r) {
+    var mem = String(r[2] || '').split(',').map(function (e) { return e.trim().toLowerCase(); }).filter(function (e) { return names[e]; }); // 名簿から外れた人は出さない
+    return { id: String(r[0]), name: String(r[1]), members: mem, creator: String(r[3]).toLowerCase(), creatorName: names[String(r[3]).toLowerCase()] || '', updated: String(r[5] || r[4] || '') };
+  }).sort(function (a, b) { return a.name.localeCompare(b.name, 'ja'); });
+}
+function saveTeam(p) {
+  var email = myEmail_(); checkMember_(email);
+  p = p || {};
+  var name = String(p.name || '').replace(/\s+/g, ' ').trim();
+  if (!name) throw new Error('チーム名を入れてください');
+  if (name.length > 30) throw new Error('チーム名は30文字までにしてください');
+  var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
+  var mem = []; (p.members || []).forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (known[e] && mem.indexOf(e) < 0) mem.push(e); });
+  if (!mem.length) throw new Error('メンバーを1人以上選んでください');
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var sh = teamSheet_(), n = sh.getLastRow(), rows = n < 2 ? [] : sh.getRange(2, 1, n - 1, TEAM_HEAD.length).getValues(), ts = now_();
+    var same = rows.filter(function (r) { return String(r[1]).trim() === name && String(r[0]) !== String(p.id || ''); })[0];
+    if (same) throw new Error('同じ名前のチーム「' + name + '」があります。別の名前にしてください');
+    if (p.id) {
+      var i = rows.map(function (r) { return String(r[0]); }).indexOf(String(p.id));
+      if (i < 0) throw new Error('このチームは見つかりません（削除された可能性があります）');
+      if (String(rows[i][3]).toLowerCase() !== email && !isAdmin_(email)) throw new Error('チームを修正できるのは、作った人と管理者だけです');
+      sh.getRange(i + 2, 2, 1, 2).setValues([[name, mem.join(',')]]); sh.getRange(i + 2, 6).setValue(ts);
+    } else {
+      if (rows.length >= 100) throw new Error('チームは100個までです。使わないチームを削除してください');
+      sh.appendRow([newId_('tm'), name, mem.join(','), email, ts, ts]);
+    }
+  } finally { lock.releaseLock(); }
+  return teams_();
+}
+function deleteTeam(id) {
+  var email = myEmail_(); checkMember_(email);
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var sh = teamSheet_(), n = sh.getLastRow(); if (n < 2) throw new Error('このチームは見つかりません');
+    var ids = sh.getRange(2, 1, n - 1, 4).getValues(), i = ids.map(function (r) { return String(r[0]); }).indexOf(String(id));
+    if (i < 0) throw new Error('このチームは見つかりません');
+    if (String(ids[i][3]).toLowerCase() !== email && !isAdmin_(email)) throw new Error('チームを削除できるのは、作った人と管理者だけです');
+    sh.deleteRow(i + 2);
+  } finally { lock.releaseLock(); }
+  return teams_();
+}
 </script>
 <script>// サンプルデータ（架空・8人・タスク 約20件・カレンダー・未読メール）と google.script.run のモック
 (function () {
@@ -1691,7 +1759,7 @@ function getMailApi_() {
 </script>
 <script id="app">
 var booted = false;
-var S = { me: null, members: [], links: [], settings: {}, kinds: [], today: '', board: [], sent: [], tab: 'dash', kind: 'self', to: {}, excl: {}, calDate: '', calCache: {}, mail: null, timer: null, reminders: [], remindOpen: false, ov: null, mv: null, mvEmail: '', viewers: [] };
+var S = { me: null, members: [], links: [], settings: {}, kinds: [], today: '', board: [], sent: [], tab: 'dash', kind: 'self', to: {}, excl: {}, teams: [], calDate: '', calCache: {}, mail: null, timer: null, reminders: [], remindOpen: false, ov: null, mv: null, mvEmail: '', viewers: [] };
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function call(name) {
@@ -1744,6 +1812,34 @@ function repeatPreview(kind, lead, due) {
   var base = kind === 'weekly' ? '毎週 ' + wd : kind === 'biweekly' ? '隔週 ' + wd : kind === 'monthend' ? '毎月 月末' : kind === 'nthwd' ? '毎月 第' + n + ' ' + wd : kind === 'lastwd' ? '毎月 最後の' + wd : '毎月 ' + p[2] + '日';
   return '🔁 <b>' + base + '</b>（締切の' + leadText(lead) + 'の朝' + Number(REPEAT_HOUR.slice(0, 2)) + '時に復活）<br>次の締切: <b>' + fmtYmd(d1) + '</b>・次の復活: <b>' + fmtYmd(reviveOf(d1, lead)) + ' ' + REPEAT_HOUR + '</b><br>その次: ' + fmtYmd(reviveOf(d2, lead)) + ' ' + REPEAT_HOUR + '（締切 ' + fmtYmd(d2) + '）<br><span style="color:#64748b">復活すると全員の完了が外れて、もう一度ボードに出ます</span>';
 }
+// 毎月 第◯ ◯曜日／最後の◯曜日（2026-11-09）: 第何と曜日をプルダウンで選ぶ → 締切を「次のその日」に自動で入れる。締切を直接選んだら、プルダウンもそれに合わせる
+// 受け口（Code.gs）は今までどおり締切の日から 第何・曜日 を決めるので、選んだものと締切は必ずそろう
+function nextWdDate(kind, n, w) {
+  var t = (S.today || ymdS(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate())).split('-').map(Number), y = t[0], m = t[1];
+  for (var i = 0; i < 3; i++) { var d = kind === 'lastwd' ? nthWdOf(y, m, 0, w) : nthWdOf(y, m, n, w), s = ymdS(y, m, d); if (s >= S.today || (!S.today && i)) return s; m++; if (m > 12) { m = 1; y++; } }
+  return '';
+}
+function wdPicker(box, repeatSel, dueInput, onChange) {
+  box.innerHTML = '<span class="wdN"><select aria-label="第何週">' + [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '">第' + n + '</option>'; }).join('') + '</select></span>' +
+    '<select class="wdW" aria-label="曜日">' + WD.map(function (x, i) { return '<option value="' + i + '">' + x + '曜日</option>'; }).join('') + '</select><span class="hint">選ぶと締切が次のその日になります</span>';
+  var nSel = box.querySelector('.wdN select'), wSel = box.querySelector('.wdW');
+  function fromDue() { // 締切 → プルダウン
+    var v = dueInput.value; if (!v) return false;
+    var p = v.split('-').map(Number), n = Math.ceil(p[2] / 7); wSel.value = String(wdOf(p[0], p[1], p[2])); if (n <= 4) nSel.value = String(n); return true;
+  }
+  function toDue() { var d = nextWdDate(repeatSel.value, Number(nSel.value), Number(wSel.value)); if (d) dueInput.value = d; onChange && onChange(); }
+  function sync() {
+    var k = repeatSel.value, on = k === 'nthwd' || k === 'lastwd';
+    box.classList.toggle('hide', !on); box.querySelector('.wdN').classList.toggle('hide', k !== 'nthwd');
+    if (!on) return;
+    if (!fromDue()) { nSel.value = '1'; wSel.value = '1'; toDue(); } // 締切が空なら 第1 月曜日 から
+    else if (k === 'lastwd') { var p = dueInput.value.split('-').map(Number); if (p[2] + 7 <= lastDayOf(p[0], p[1])) toDue(); } // 最後の◯曜日でない日なら、その曜日の最後の日に合わせる
+    else { var q = dueInput.value.split('-').map(Number); if (Math.ceil(q[2] / 7) > 4) toDue(); } // 第5週なら 第4 にそろえる
+  }
+  nSel.onchange = toDue; wSel.onchange = toDue;
+  dueInput.addEventListener('change', function () { if (!box.classList.contains('hide')) fromDue(); });
+  return sync;
+}
 function repeatKindOf(r) { return String(r || '').split(':')[0]; }
 // 所要時間の ▲▼: 1, 2, 3, 5, 10, 15, 20 …（5 から先は 5 刻み）。キーで数字を打ったときはそのまま
 function minsUp(v) { v = Math.floor(Number(v) || 0); return v < 1 ? 1 : v < 3 ? v + 1 : v < 5 ? 5 : Math.floor(v / 5) * 5 + 5; }
@@ -1788,7 +1884,7 @@ $('mCreate').onclick = function () { show('dash'); setTimeout(function () { $('c
 // ---------- 起動 ----------
 function boot() {
   call('init').then(function (r) {
-    S.me = r.me; S.members = r.members; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.appUrl = r.appUrl || ''; S.today = r.today; S.board = r.board; S.sent = r.sent;
+    S.me = r.me; S.members = r.members; S.teams = r.teams || []; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.appUrl = r.appUrl || ''; S.today = r.today; S.board = r.board; S.sent = r.sent;
     if (!S.calDate) S.calDate = r.today;
     $('meMail').textContent = r.me.email;
     if (r.me.name) { $('meName').textContent = r.me.name + (r.me.isAdmin ? '（管理者）' : ''); $('meAv').textContent = initial(r.me.name); }
@@ -1914,14 +2010,62 @@ function renderTo() {
   $('cTo').querySelectorAll('input[data-e]').forEach(function (c) { c.onchange = function () {
     var e = c.dataset.e;
     if (S.kind === 'all') { if (c.checked) delete S.excl[e]; else S.excl[e] = 1; c.parentNode.classList.toggle('off', !c.checked); }
-    else { if (c.checked) S.to[e] = 1; else delete S.to[e]; }
+    else { if (c.checked) S.to[e] = 1; else delete S.to[e]; if ($('cTeamSel').value) { $('cTeamSel').value = ''; teamBtns(); } }
     $('cToN').textContent = toCount();
   }; });
   $('cToN').textContent = toCount();
 }
 $('cAll').onclick = function () { if (S.kind === 'all') S.excl = {}; else others().forEach(function (m) { S.to[m.email] = 1; }); renderTo(); };
 $('cNone').onclick = function () { if (S.kind === 'all') others().forEach(function (m) { S.excl[m.email] = 1; }); else S.to = {}; renderTo(); };
-function setKind(k) { S.kind = k; $('cSelf').classList.toggle('on', k === 'self'); $('cTeam').classList.toggle('on', k === 'team'); $('cCompany').classList.toggle('on', k === 'all'); $('cToWrap').classList.toggle('hide', k === 'self'); renderTo(); }
+// ---------- 保存したチーム（2026-11-09）: 誰かが作ったチームを全員が選べる。選ぶとそのメンバーにチェック（あとで1人ずつ変えてもよい） ----------
+function renderTeams(selId) {
+  var sel = $('cTeamSel'), cur = selId != null ? selId : sel.value;
+  sel.innerHTML = '<option value="">' + (S.teams.length ? '（1人ずつ選ぶ）' : '（まだチームがありません）') + '</option>' + S.teams.map(function (t) { return '<option value="' + esc(t.id) + '">' + esc(t.name) + '（' + t.members.length + '人）</option>'; }).join('');
+  sel.value = S.teams.some(function (t) { return t.id === cur; }) ? cur : '';
+  teamBtns();
+}
+function teamOf(id) { return S.teams.filter(function (t) { return t.id === id; })[0]; }
+function canEditTeam(t) { return t && S.me && (t.creator === S.me.email || S.me.isAdmin); }
+function teamBtns() { var t = teamOf($('cTeamSel').value); $('cTeamEdit').classList.toggle('hide', !canEditTeam(t)); }
+function applyTeam(t) { var me = S.me ? S.me.email : ''; S.to = {}; if (t) t.members.forEach(function (e) { if (e !== me) S.to[e] = 1; }); renderTo(); }
+$('cTeamSel').onchange = function () { teamBtns(); var t = teamOf(this.value); if (t) applyTeam(t); };
+function teamModal(t) {
+  var me = S.me ? S.me.email : '', on = {};
+  if (t) t.members.forEach(function (e) { on[e] = 1; }); else { Object.keys(S.to).forEach(function (e) { on[e] = 1; }); if (me) on[me] = 1; } // 新しく作るときは、いまチェックしている人から始める
+  modal('<div class="mh"><h3>' + (t ? 'チームを修正' : 'チームを作る') + '</h3></div><div class="mb">' +
+    '<div class="field"><label>チーム名</label><input id="tmName" maxlength="30" placeholder="例：営業1課・一宮チーム" value="' + esc(t ? t.name : '') + '"></div>' +
+    '<div class="field"><label style="display:flex;align-items:center;gap:6px">メンバー（<b id="tmN">0</b> 人）<span style="flex:1"></span><button class="btn sm ghost" id="tmAll" style="height:22px;padding:0 6px;font-size:11px">全員</button><button class="btn sm ghost" id="tmNone" style="height:22px;padding:0 6px;font-size:11px">解除</button></label>' +
+    '<div class="tchecks" id="tmChecks">' + S.members.map(function (m) { return '<label title="' + esc(m.name) + '"><input type="checkbox" data-e="' + esc(m.email) + '"' + (on[m.email] ? ' checked' : '') + '>' + esc(m.name) + (m.email === me ? '（自分）' : '') + '</label>'; }).join('') + '</div></div>' +
+    '<p class="hint" style="margin:0">保存したチームは、全員が「タスクの作成」の「チームから選ぶ」で使えます。修正・削除できるのは、作った人と管理者だけです。' + (t ? '（作った人：' + esc(t.creatorName || t.creator) + '）' : '') + '</p></div>' +
+    '<div class="mf">' + (t ? '<button class="btn danger" id="tmDel" style="margin-right:auto">削除</button>' : '') + '<button class="btn" data-close>やめる</button><button class="btn primary" id="tmSave">保存</button></div>', function (bg) {
+      var cnt = function () { bg.querySelector('#tmN').textContent = bg.querySelectorAll('#tmChecks input:checked').length; }; cnt();
+      bg.querySelectorAll('#tmChecks input').forEach(function (c) { c.onchange = cnt; });
+      bg.querySelector('#tmAll').onclick = function () { bg.querySelectorAll('#tmChecks input').forEach(function (c) { c.checked = true; }); cnt(); };
+      bg.querySelector('#tmNone').onclick = function () { bg.querySelectorAll('#tmChecks input').forEach(function (c) { c.checked = false; }); cnt(); };
+      bg.querySelector('#tmName').focus();
+      bg.querySelector('#tmSave').onclick = function () {
+        var b = this, name = bg.querySelector('#tmName').value.trim(), mem = [].map.call(bg.querySelectorAll('#tmChecks input:checked'), function (c) { return c.dataset.e; });
+        if (!name) { toast('チーム名を入れてください', true); return; }
+        if (!mem.length) { toast('メンバーを1人以上選んでください', true); return; }
+        b.disabled = true;
+        call('saveTeam', { id: t ? t.id : '', name: name, members: mem }).then(function (list) {
+          S.teams = list; bg.remove();
+          var saved = list.filter(function (x) { return x.name === name.replace(/\s+/g, ' '); })[0];
+          renderTeams(saved ? saved.id : ''); if (saved) applyTeam(saved);
+          toast(t ? 'チームを修正しました' : 'チーム「' + name + '」を作りました（全員が選べます）');
+        }).catch(function (e) { b.disabled = false; fail(e); });
+      };
+      var del = bg.querySelector('#tmDel');
+      if (del) del.onclick = function () {
+        if (!confirm('チーム「' + t.name + '」を削除します。よろしいですか？（作ったタスクはそのままです）')) return;
+        del.disabled = true;
+        call('deleteTeam', t.id).then(function (list) { S.teams = list; bg.remove(); renderTeams(''); toast('チームを削除しました'); }).catch(function (e) { del.disabled = false; fail(e); });
+      };
+    });
+}
+$('cTeamNew').onclick = function () { teamModal(null); };
+$('cTeamEdit').onclick = function () { var t = teamOf($('cTeamSel').value); if (t) teamModal(t); };
+function setKind(k) { S.kind = k; $('cTeamRow').classList.toggle('hide', k !== 'team'); if (k === 'team') renderTeams(); $('cSelf').classList.toggle('on', k === 'self'); $('cTeam').classList.toggle('on', k === 'team'); $('cCompany').classList.toggle('on', k === 'all'); $('cToWrap').classList.toggle('hide', k === 'self'); renderTo(); }
 // 複製（2026-11-02）: 発信したタスクの中身を「タスクの作成」欄に入れる。直して「タスクを作成」で新しいタスクになる（元はそのまま）
 function copyToForm(t) {
   show('dash');
@@ -1935,14 +2079,16 @@ function copyToForm(t) {
   if (kind === 'team') others().forEach(function (m) { if (got[m.email]) S.to[m.email] = 1; });
   if (kind === 'all') others().forEach(function (m) { if (!got[m.email]) S.excl[m.email] = 1; }); // 前に外した人は外したまま
   setKind(kind);
-  var rk = repeatKindOf(t.repeat); $('cRepeat').value = rk; fillLead($('cLead'), rk, t.repeatLead || 0); renderRepeatPv();
+  var rk = repeatKindOf(t.repeat); $('cRepeat').value = rk; fillLead($('cLead'), rk, t.repeatLead || 0); renderRepeatPv(); cWdSync();
   setTimeout(function () { $('createCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(function () { $('cTitle').focus({ preventScroll: true }); }, 400); }, 50);
   toast(past ? '複製しました。締切が過ぎていたので空にしています。締切を入れて「タスクを作成」を押してください' : '複製しました。内容を直して「タスクを作成」を押してください');
 }
 $('cSelf').onclick = function () { setKind('self'); }; $('cTeam').onclick = function () { setKind('team'); }; $('cCompany').onclick = function () { setKind('all'); };
-function renderRepeatPv() { var k = $('cRepeat').value; $('cRepeatPv').innerHTML = repeatPreview(k, $('cLead').value, $('cDue').value); $('cRepeatPv').classList.toggle('hide', !k); }
+var cWdSync = null;
+function renderRepeatPv() { if (!cWdSync) cWdSync = wdPicker($('cWdPick'), $('cRepeat'), $('cDue'), function () { renderRepeatPv(); }); var k = $('cRepeat').value; $('cRepeatPv').innerHTML = repeatPreview(k, $('cLead').value, $('cDue').value); $('cRepeatPv').classList.toggle('hide', !k); }
 $('cRepeat').onchange = function () {
   var k = $('cRepeat').value; fillLead($('cLead'), k, $('cLead').value);
+  if (!cWdSync) renderRepeatPv(); cWdSync();
   if (k === 'monthend' && !$('cDue').value) { var n = new Date(); $('cDue').value = ymdS(n.getFullYear(), n.getMonth() + 1, lastDayOf(n.getFullYear(), n.getMonth() + 1)); } // 月末は締切を今月末に
   renderRepeatPv();
 };
@@ -1958,7 +2104,7 @@ $('cSave').onclick = function () {
     $('cSave').disabled = false;
     ['cTitle', 'cBody', 'cDue', 'cDueTime', 'cMins', 'cLink'].forEach(function (id) { $(id).value = ''; });
     $('cImportant').checked = false; S.to = {}; S.excl = {}; renderTo();
-    $('cRepeat').value = ''; fillLead($('cLead'), '', 0); renderRepeatPv();
+    $('cRepeat').value = ''; fillLead($('cLead'), '', 0); renderRepeatPv(); cWdSync();
     if (t.myStatus === 'open') { S.board.push(t); S.board.sort(boardOrder); renderBoard(); }
     if (t.scope === 'share') { S.sent.push(t); S.sent.sort(boardOrder); }
     toast((t.scope === 'share' ? t.assignees.filter(function (a) { return a.email !== t.creator; }).length + ' 人に共有しました' : 'タスクを作りました') + (t.nextRevive ? '（次の復活 ' + fmtYmd(t.nextRevive.slice(0, 10)) + ' ' + t.nextRevive.slice(11) + '）' : ''));
@@ -2081,15 +2227,16 @@ function editModal(t) {
     '<div class="field"><label>内容</label><textarea id="eBody" rows="4">' + esc(t.body) + '</textarea></div>' +
     '<div class="row2"><div class="field"><label>締切</label><input id="eDue" type="date" value="' + esc(t.due) + '"></div><div class="field"><label>時刻（任意）</label><input id="eDueTime" type="time" value="' + esc(t.dueTime) + '"></div></div>' +
     '<div class="row2"><div class="field"><label>所要時間（分）</label><input id="eMins" type="number" min="1" step="1" value="' + esc(t.minutes) + '"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="eImportant" style="width:auto;height:auto;margin:0"' + (t.important ? ' checked' : '') + '>重要タスク（ピンク）</label></div></div>' +
-    '<div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="eRepeat">' + [['', 'しない'], ['weekly', '毎週'], ['biweekly', '隔週'], ['monthly', '毎月（同じ日）'], ['monthend', '毎月 月末'], ['nthwd', '毎月 第◯ ◯曜日'], ['lastwd', '毎月 最後の◯曜日']].map(function (o) { return '<option value="' + o[0] + '"' + (repeatKindOf(t.repeat) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div class="field"><label>復活する日</label><select id="eLead"></select></div></div><div class="rpv hide" id="eRepeatPv"></div>' +
+    '<div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="eRepeat" data-wd="eWdPick">' + [['', 'しない'], ['weekly', '毎週'], ['biweekly', '隔週'], ['monthly', '毎月（同じ日）'], ['monthend', '毎月 月末'], ['nthwd', '毎月 第◯ ◯曜日'], ['lastwd', '毎月 最後の◯曜日']].map(function (o) { return '<option value="' + o[0] + '"' + (repeatKindOf(t.repeat) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div class="field"><label>復活する日</label><select id="eLead"></select></div></div><div class="wdpick hide" id="eWdPick"></div><div class="rpv hide" id="eRepeatPv"></div>' +
     '<div class="field"><label>リンク</label><input id="eLink" type="url" value="' + esc(t.link) + '"></div>' +
     (t.scope === 'share' ? '<div class="field"><label>相手を足す（外すことはできません）</label><div class="chips" id="eTo">' + others.map(function (m) { return '<button class="chip' + (cur[m.email] ? ' on' : '') + '" data-e="' + esc(m.email) + '"' + (cur[m.email] ? ' disabled' : '') + '>' + esc(m.name) + '</button>'; }).join('') + '</div></div>' : '') +
     '</div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn primary" id="eSave">保存</button></div>', function (bg) {
     var add = {}; minsStepper(bg.querySelector('#eMins'));
     var eR = bg.querySelector('#eRepeat'), eL = bg.querySelector('#eLead'), ePv = bg.querySelector('#eRepeatPv'), eD = bg.querySelector('#eDue');
     function ePrev() { ePv.innerHTML = repeatPreview(eR.value, eL.value, eD.value); ePv.classList.toggle('hide', !eR.value); }
-    fillLead(eL, eR.value, t.repeatLead || 0); ePrev();
-    eR.onchange = function () { fillLead(eL, eR.value, eL.value); ePrev(); }; eL.onchange = ePrev; eD.addEventListener('change', ePrev);
+    var eWd = wdPicker(bg.querySelector('#eWdPick'), eR, eD, ePrev);
+    fillLead(eL, eR.value, t.repeatLead || 0); eWd(); ePrev();
+    eR.onchange = function () { fillLead(eL, eR.value, eL.value); eWd(); ePrev(); }; eL.onchange = ePrev; eD.addEventListener('change', ePrev);
     bg.querySelectorAll('#eTo .chip:not(:disabled)').forEach(function (b) { b.onclick = function () { if (add[b.dataset.e]) delete add[b.dataset.e]; else add[b.dataset.e] = 1; b.classList.toggle('on'); }; });
     bg.querySelector('#eSave').onclick = function () {
       call('updateTask', t.id, { title: bg.querySelector('#eTitle').value, body: bg.querySelector('#eBody').value, due: bg.querySelector('#eDue').value, dueTime: bg.querySelector('#eDueTime').value, minutes: bg.querySelector('#eMins').value, link: bg.querySelector('#eLink').value, important: bg.querySelector('#eImportant').checked, addTo: Object.keys(add), repeat: eR.value === 'monthly' && repeatKindOf(t.repeat) === 'monthly' && eD.value === t.due ? t.repeat : eR.value, repeatLead: eL.value })
