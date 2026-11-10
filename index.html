@@ -172,6 +172,7 @@
   .checks input { width: auto; height: auto; margin: 0; flex: none; }
   .chip { font: inherit; font-size: 12px; background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; height: auto; }
   .chip.on { background: var(--accent-weak); color: var(--accent); border-color: #99f6e4; }
+  .chip.off { background: #fff; color: var(--danger); border-color: var(--danger); text-decoration: line-through; }
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
   .seg button { border: 0; background: #fff; font: inherit; font-size: 13px; padding: 0 12px; height: 34px; cursor: pointer; color: var(--muted); }
   .seg button.on { background: var(--accent); color: #fff; }
@@ -1358,7 +1359,33 @@ function updateTask(id, p) {
   sh.getRange(x.row, 13).setValue(now_());
   if (p.important !== undefined) sh.getRange(x.row, 15).setValue(p.important ? '1' : '');
   if (p.repeat !== undefined) sh.getRange(x.row, 16, 1, 2).setValues([repeatIn_(p.repeat, p.repeatLead, due)]);
-  // 共有の相手を足す（外すのは担当者の行を消さず、未対応のまま残さないよう done 扱いにはしない。足すだけ）
+  // 共有の相手を外す（2026-11-10〜・間違えて足した人を外せるように）。発信者は外せない・相手が0人にはできない。外した担当の行は archive_assignments に移して残す（消さない）
+  if (t.scope === 'share' && p.removeTo && p.removeTo.length) {
+    var rm = {}; p.removeTo.forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (e && e !== t.creator) rm[e] = 1; });
+    var left = assignsOf_(id).filter(function (a) { return !rm[a.email]; });
+    var willAdd = (p.addTo || []).some(function (e) { e = String(e || '').trim().toLowerCase(); return e && e !== t.creator && !rm[e] && memberMap_()[e]; }); // 同時に足す人がいれば0人にはならない
+    if (!willAdd && !left.filter(function (a) { return a.email !== t.creator; }).length) throw new Error('相手を全員は外せません（1人以上残してください）');
+    var ash = sheet_('assignments'), w = ash.getLastColumn(), arows = ash.getLastRow() > 1 ? ash.getRange(2, 1, ash.getLastRow() - 1, w).getValues() : [], keep = [], out = [];
+    arows.forEach(function (r) { (String(r[0]) === id && rm[String(r[1]).toLowerCase()] ? out : keep).push(r); });
+    if (out.length) {
+      var arc = archiveSheet_('assignments', ash), aw = arc.getLastColumn(), ts2 = now_();
+      arc.getRange(arc.getLastRow() + 1, 1, out.length, aw).setValues(out.map(function (r) { var z = r.map(function (v) { return v instanceof Date ? str_(v) : v; }); while (z.length < aw - 1) z.push(''); return z.slice(0, aw - 1).concat([ts2]); }));
+      ash.getRange(2, 1, arows.length, w).clearContent(); // 残すものだけ上から書き直す（行は削除しない・書庫と同じやり方）
+      if (keep.length) ash.getRange(2, 1, keep.length, w).setValues(keep);
+      bust_('assignments');
+      // 外した人の「未読」も外す（ボードに未読が残らないように）
+      var csh = sheet_('comments');
+      rows_('comments').forEach(function (r, i) {
+        if (String(r[1]) !== id) return;
+        var u = String(r[5] || '').split(',').filter(String), u2 = u.filter(function (e) { return !rm[e]; });
+        if (u2.length !== u.length) csh.getRange(i + 2, 6).setValue(u2.join(','));
+      });
+      bust_('comments');
+      var all2 = assignsOf_(id), allDone2 = all2.length && all2.every(function (a) { return a.status === 'done'; }); // 残った人が全員完了ならタスクも完了
+      sh.getRange(x.row, 11, 1, 2).setValues([[allDone2 ? 'done' : 'open', allDone2 ? (t.doneAt || ts2) : '']]);
+    }
+  }
+  // 共有の相手を足す
   if (t.scope === 'share' && p.addTo && p.addTo.length) {
     var cur = {}; assignsOf_(id).forEach(function (a) { cur[a.email] = 1; });
     var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
@@ -2229,7 +2256,7 @@ function editModal(t) {
     '<div class="row2"><div class="field"><label>所要時間（分）</label><input id="eMins" type="number" min="1" step="1" value="' + esc(t.minutes) + '"></div><div class="field"><label>重要</label><label style="display:flex;align-items:center;gap:6px;height:36px;font-size:13px;cursor:pointer"><input type="checkbox" id="eImportant" style="width:auto;height:auto;margin:0"' + (t.important ? ' checked' : '') + '>重要タスク（ピンク）</label></div></div>' +
     '<div class="row2 rrow"><div class="field"><label>繰り返し</label><select id="eRepeat" data-wd="eWdPick">' + [['', 'しない'], ['weekly', '毎週'], ['biweekly', '隔週'], ['monthly', '毎月（同じ日）'], ['monthend', '毎月 月末'], ['nthwd', '毎月 第◯ ◯曜日'], ['lastwd', '毎月 最後の◯曜日']].map(function (o) { return '<option value="' + o[0] + '"' + (repeatKindOf(t.repeat) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div class="field"><label>復活する日</label><select id="eLead"></select></div></div><div class="wdpick hide" id="eWdPick"></div><div class="rpv hide" id="eRepeatPv"></div>' +
     '<div class="field"><label>リンク</label><input id="eLink" type="url" value="' + esc(t.link) + '"></div>' +
-    (t.scope === 'share' ? '<div class="field"><label>相手を足す（外すことはできません）</label><div class="chips" id="eTo">' + others.map(function (m) { return '<button class="chip' + (cur[m.email] ? ' on' : '') + '" data-e="' + esc(m.email) + '"' + (cur[m.email] ? ' disabled' : '') + '>' + esc(m.name) + '</button>'; }).join('') + '</div></div>' : '') +
+    (t.scope === 'share' ? '<div class="field"><label>相手（押すと足す・もう一度押すと外す）</label><div class="chips" id="eTo">' + others.map(function (m) { return '<button class="chip' + (cur[m.email] ? ' on' : '') + '" data-e="' + esc(m.email) + '"' + (cur[m.email] ? ' data-cur="1"' : '') + '>' + esc(m.name) + '</button>'; }).join('') + '</div><p class="hint hide" id="eToNote" style="margin:6px 0 0"></p></div>' : '') +
     '</div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn primary" id="eSave">保存</button></div>', function (bg) {
     var add = {}; minsStepper(bg.querySelector('#eMins'));
     var eR = bg.querySelector('#eRepeat'), eL = bg.querySelector('#eLead'), ePv = bg.querySelector('#eRepeatPv'), eD = bg.querySelector('#eDue');
@@ -2237,9 +2264,17 @@ function editModal(t) {
     var eWd = wdPicker(bg.querySelector('#eWdPick'), eR, eD, ePrev);
     fillLead(eL, eR.value, t.repeatLead || 0); eWd(); ePrev();
     eR.onchange = function () { fillLead(eL, eR.value, eL.value); eWd(); ePrev(); }; eL.onchange = ePrev; eD.addEventListener('change', ePrev);
-    bg.querySelectorAll('#eTo .chip:not(:disabled)').forEach(function (b) { b.onclick = function () { if (add[b.dataset.e]) delete add[b.dataset.e]; else add[b.dataset.e] = 1; b.classList.toggle('on'); }; });
+    var rem = {}, eNote = bg.querySelector('#eToNote'); // 外す人（2026-11-10〜）
+    function nameOfE(e) { var m = S.members.filter(function (x) { return x.email === e; })[0]; return m ? m.name : e; }
+    function toNote() { if (!eNote) return; var r = Object.keys(rem).map(nameOfE), a = Object.keys(add).map(nameOfE); eNote.innerHTML = (a.length ? '足す: ' + esc(a.join('、')) : '') + (a.length && r.length ? '　' : '') + (r.length ? '<span style="color:var(--danger)">外す: ' + esc(r.join('、')) + '</span>' : ''); eNote.classList.toggle('hide', !a.length && !r.length); }
+    bg.querySelectorAll('#eTo .chip').forEach(function (b) { b.onclick = function () {
+      var e = b.dataset.e;
+      if (b.dataset.cur) { if (rem[e]) delete rem[e]; else rem[e] = 1; b.classList.toggle('on', !rem[e]); b.classList.toggle('off', !!rem[e]); }
+      else { if (add[e]) delete add[e]; else add[e] = 1; b.classList.toggle('on', !!add[e]); }
+      toNote();
+    }; });
     bg.querySelector('#eSave').onclick = function () {
-      call('updateTask', t.id, { title: bg.querySelector('#eTitle').value, body: bg.querySelector('#eBody').value, due: bg.querySelector('#eDue').value, dueTime: bg.querySelector('#eDueTime').value, minutes: bg.querySelector('#eMins').value, link: bg.querySelector('#eLink').value, important: bg.querySelector('#eImportant').checked, addTo: Object.keys(add), repeat: eR.value === 'monthly' && repeatKindOf(t.repeat) === 'monthly' && eD.value === t.due ? t.repeat : eR.value, repeatLead: eL.value })
+      call('updateTask', t.id, { title: bg.querySelector('#eTitle').value, body: bg.querySelector('#eBody').value, due: bg.querySelector('#eDue').value, dueTime: bg.querySelector('#eDueTime').value, minutes: bg.querySelector('#eMins').value, link: bg.querySelector('#eLink').value, important: bg.querySelector('#eImportant').checked, addTo: Object.keys(add), removeTo: Object.keys(rem), repeat: eR.value === 'monthly' && repeatKindOf(t.repeat) === 'monthly' && eD.value === t.due ? t.repeat : eR.value, repeatLead: eL.value })
         .then(function () { bg.remove(); toast('変更しました'); reloadBoard(); }).catch(fail);
     };
   });
