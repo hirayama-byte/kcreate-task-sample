@@ -239,6 +239,9 @@
   .kbar .nums { font-family: var(--mono); font-size: 12px; color: #475569; white-space: nowrap; } .kbar .nums b { color: var(--text); font-size: 13px; }
   .kbar .nums .y { color: #a16207; } .kbar .nums .g { color: #4d7c0f; } .kbar .nums .b { color: #0369a1; }
   .ovwhy { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: normal; max-width: 220px; }
+  .ovlogin { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+  .ovlogin.old { color: var(--warn); }
+  .ovlogin.none { color: #cbd5e1; }
   .mvhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .mvhead h2 { margin: 0; font-size: 17px; } .mvhead .sp { flex: 1; }
   #mvBoard { max-height: none; overflow: visible; }
@@ -368,7 +371,7 @@
       <!-- 全員の状況（管理者＋選ばれた人だけ） -->
       <section id="team" class="hide">
         <div class="card">
-          <div class="card-h"><h2>全員の状況</h2><span class="hint">残っているタスク・遅れ・偏りをひと目で。行を押すとその人のタスク管理画面が見られます（見るだけ）</span><span class="sp"></span><select id="ovDept" style="height:30px;width:auto"><option value="">全部署</option></select><select id="ovSort" style="height:30px;width:auto"><option value="level">気になる順</option><option value="open">残りが多い順</option><option value="minutes">所要時間が多い順</option><option value="name">名前順</option></select><button class="btn sm ghost" id="ovReload" title="最新に更新">⟳</button></div>
+          <div class="card-h"><h2>全員の状況</h2><span class="hint">残っているタスク・遅れ・偏りをひと目で。行を押すとその人のタスク管理画面が見られます（見るだけ）</span><span class="sp"></span><select id="ovDept" style="height:30px;width:auto"><option value="">全部署</option></select><select id="ovSort" style="height:30px;width:auto"><option value="level">気になる順</option><option value="open">残りが多い順</option><option value="minutes">所要時間が多い順</option><option value="name">名前順</option><option value="login">最終ログインが古い順</option></select><button class="btn sm ghost" id="ovReload" title="最新に更新">⟳</button></div>
           <div class="ovsum" id="ovSum"></div>
           <div class="tbl"><table id="ovTable"><thead><tr><th>名前</th><th>状態</th><th>残りのタスク（<span style="color:#a16207">個人</span>・<span style="color:#4d7c0f">チーム</span>・<span style="color:#0369a1">全社</span>）</th><th class="n">期限超過</th><th class="n">今日・明日</th><th class="n">未開封</th><th class="n">返事待ち</th><th class="n">所要合計</th><th class="n" id="ovLateH">最近の遅れ</th></tr></thead><tbody id="ovBody"></tbody></table></div>
           <div class="empty hide" id="ovEmpty">該当する人はいません</div>
@@ -834,6 +837,7 @@ function init() {
   if (!ss_().getSheetByName('tasks')) setup();
   var tsh = sheet_('tasks'); if (tsh.getLastColumn() < TASK_HEAD.length) tsh.getRange(1, 1, 1, TASK_HEAD.length).setValues([TASK_HEAD]); // 後から足した列（repeat, repeat_lead）の見出し
   var me = member_(email);
+  if (me.name) { try { touchLogin_(email); } catch (err) { Logger.log('最終ログインの記録に失敗: ' + err); } } // 開いた日時を記録（失敗しても画面は開く）
   me.isAdmin = isAdmin_(email);
   me.canOverview = canOverview_(email);
   var s = settings_();
@@ -1097,12 +1101,39 @@ function personStatus_(email, tasks, nowS, today, tomorrow, since) {
   Object.keys(last).forEach(function (id) { if (last[id].by === email && tasks[id].creator !== email) st.waiting++; });
   return st;
 }
+// 最終ログイン（2026-11-10〜）: サイトを開いた（init）日時を logins シートに1人1行で記録。全員の状況に出す
+var LOGIN_HEAD = ['email', 'last_at'];
+function loginSheet_() {
+  var ss = ss_(), sh = ss.getSheetByName('logins');
+  if (sh) return sh;
+  sh = ensureSheet_(ss, 'logins', LOGIN_HEAD);
+  sh.getRange(1, 2, Math.max(sh.getMaxRows(), 1), 1).setNumberFormat('@'); // 日時を文字のまま（+9時間ずれ防止）
+  return sh;
+}
+function touchLogin_(email) {
+  var sh = loginSheet_(), ts = now_(), n = sh.getLastRow();
+  var col = n > 1 ? sh.getRange(2, 1, n - 1, 1).getValues() : [];
+  for (var i = 0; i < col.length; i++) if (String(col[i][0]).toLowerCase() === email) { sh.getRange(i + 2, 2).setValue(ts); return ts; }
+  sh.appendRow([email, ts]);
+  return ts;
+}
+function lastLogins_() {
+  var sh = ss_().getSheetByName('logins'), m = {};
+  if (!sh || sh.getLastRow() < 2) return m;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (r) {
+    var e = String(r[0]).toLowerCase(), v = r[1] instanceof Date ? Utilities.formatDate(r[1], TZ, 'yyyy-MM-dd HH:mm') : String(r[1] || '');
+    if (e && v && (!m[e] || v > m[e])) m[e] = v; // 同時に開いて2行になっても新しい方
+  });
+  return m;
+}
+
 function getOverview() {
   var me = checkOverview_();
   rollRepeats_();
   var tasks = tasksMap_(), nowS = now_(), today = today_(), tomorrow = addDays_(today, 1), since = addDays_(today, -OVERVIEW_LATE_DAYS) + ' 00:00';
   if (ss_().getSheetByName('history')) rows_('history'); else memo_.history = [];
-  var list = membersList_().map(function (m) { var s = personStatus_(m.email, tasks, nowS, today, tomorrow, since); s.email = m.email; s.name = m.name; s.title = m.title; return s; });
+  var logins = lastLogins_();
+  var list = membersList_().map(function (m) { var s = personStatus_(m.email, tasks, nowS, today, tomorrow, since); s.email = m.email; s.name = m.name; s.title = m.title; s.lastLogin = logins[m.email] || ''; return s; });
   var avgOpen = list.length ? list.reduce(function (n, s) { return n + s.open; }, 0) / list.length : 0;
   var avgMin = list.length ? list.reduce(function (n, s) { return n + s.minutes; }, 0) / list.length : 0;
   list.forEach(function (s) {
@@ -1736,6 +1767,9 @@ function deleteTeam(id) {
   at(S, function () { addComment(t.s3.id, '候補店は飲食だけで良いですか？'); });
   at(S, function () { getTask(t.r1.id); addComment(t.r1.id, '色校正は本日中にお願いします'); sendReminder(t.r1.id); });
   at(H, function () { getTask(t.s4.id); addComment(t.s4.id, '名刺は30枚くらいです。シートの「展示会」タグで分かるようにしてください'); });
+  // 最終ログイン（全員の状況に出る）。平山は開いた時刻・小川はまだ開いていない（記録なし）・伊藤は9日前（オレンジ）
+  [[S, 0, '08:52'], ['tanaka@k-create.co.jp', 0, '09:30'], ['suzuki@k-create.co.jp', -1, '18:10'], [K, -2, '10:05'], ['yamada@k-create.co.jp', -3, '13:40'], ['ito@k-create.co.jp', -9, '17:25']]
+    .forEach(function (x) { loginSheet_().appendRow([x[0], ymd(x[1]) + ' ' + x[2]]); });
 
   // カレンダー（人ごと）
   function ev(id, title, day, s, e, opt) { var o = { id: id, title: title, start: new RealDate(ymd(day) + 'T' + s + ':00+09:00'), end: new RealDate(ymd(day) + 'T' + e + ':00+09:00') }; if (opt) for (var k in opt) o[k] = opt[k]; return o; }
@@ -2332,6 +2366,13 @@ function lvWhy(m) {
   if (m.level === 'heavy') w.push('平均（' + S.ov.avgOpen + ' 件・' + S.ov.avgMinutes + ' 分）の1.5倍以上');
   return w.join('／');
 }
+// 最終ログイン（サイトを開いた日時・2026-11-10〜記録）。今日/昨日/日付、7日以上前はオレンジ
+function loginHtml(at, today) {
+  if (!at) return '<div class="ovlogin none" title="2026/11/10 から記録しています">最終ログイン 記録なし</div>';
+  var d = at.slice(0, 10), days = Math.round((Date.parse(today + 'T00:00:00') - Date.parse(d + 'T00:00:00')) / 86400000);
+  var label = days <= 0 ? '今日 ' + at.slice(11, 16) : days === 1 ? '昨日 ' + at.slice(11, 16) : fmtDt(at) + '（' + days + '日前）';
+  return '<div class="ovlogin' + (days >= 7 ? ' old' : '') + '" title="サイトを開いた日時: ' + esc(at) + '">最終ログイン ' + esc(label) + '</div>';
+}
 function renderOverview() {
   var r = S.ov; if (!r) return;
   var dept = $('ovDept').value, sort = $('ovSort').value;
@@ -2345,13 +2386,14 @@ function renderOverview() {
     if (sort === 'open') return b.open - a.open || b.minutes - a.minutes;
     if (sort === 'minutes') return b.minutes - a.minutes || b.open - a.open;
     if (sort === 'name') return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+    if (sort === 'login') return (a.lastLogin || '') < (b.lastLogin || '') ? -1 : (a.lastLogin || '') > (b.lastLogin || '') ? 1 : 0; // 記録なし → 古い → 新しい
     return LV[a.level][1] - LV[b.level][1] || b.late - a.late || b.soon - a.soon || b.open - a.open;
   });
   var max = Math.max.apply(null, [1].concat(r.list.map(function (m) { return m.open; })));
   function n(v, cls, suffix) { return '<td class="n ' + (v ? cls : 'z') + '">' + (v ? v + (suffix ? '<small style="font-family:inherit;font-weight:400">' + suffix + '</small>' : '') : '0') + '</td>'; }
   $('ovBody').innerHTML = list.map(function (m) {
     var why = lvWhy(m);
-    return '<tr class="row lv-' + m.level + '" data-e="' + esc(m.email) + '"><td><div class="nm">' + esc(m.name) + '</div><div class="sub">' + esc(m.title || '') + '</div></td>' +
+    return '<tr class="row lv-' + m.level + '" data-e="' + esc(m.email) + '"><td><div class="nm">' + esc(m.name) + '</div><div class="sub">' + esc(m.title || '') + '</div>' + loginHtml(m.lastLogin, r.today) + '</td>' +
       '<td><span class="lv ' + m.level + '">' + LV[m.level][0] + '</span>' + (why ? '<div class="ovwhy">' + esc(why) + '</div>' : '') + '</td>' +
       '<td><div class="kbar"><div class="bar" title="個人 ' + m.self + '・チーム ' + m.team + '・全社 ' + m.all + '"><i class="y" style="width:' + (m.self / max * 100) + '%"></i><i class="g" style="width:' + (m.team / max * 100) + '%"></i><i class="b" style="width:' + (m.all / max * 100) + '%"></i></div><span class="nums"><b>' + m.open + '</b> 件（<span class="y">' + m.self + '</span>・<span class="g">' + m.team + '</span>・<span class="b">' + m.all + '</span>）' + (m.important ? ' <span style="color:#be185d">重要 ' + m.important + '</span>' : '') + '</span></div></td>' +
       n(m.late, 'bad') + n(m.soon, 'warn') + n(m.unseen, m.unseenSoon ? 'warn' : 'info') + n(m.waiting, 'info') +
