@@ -2281,7 +2281,7 @@ function detailModal(t, focusAsk, into) {
   var people = t.scope === 'share' ? '<div class="people">' + t.assignees.map(function (a) {
     return '<div><span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '">' + (a.status === 'done' ? '完了' : a.seenAt ? '確認済・未対応' : '未対応') + '</span><span>' + esc(a.name) + '</span><span class="t">' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' + (a.doneBy && a.doneBy !== a.email ? '（' + esc(a.doneByName || a.doneBy) + ' さんが完了）' : '') : (a.seenAt ? fmtDt(a.seenAt) + ' に開いた' : 'まだ開いていません') + (a.remindAt ? '・🔔 ' + fmtDt(a.remindAt) + (a.remindSeen ? ' 確認済' : ' 未確認') : '')) + '</span>' +
       (mng && a.status !== 'done' ? '<button class="btn sm" data-cfor="' + esc(a.email) + '" title="' + esc(a.name) + ' さんの分を完了にする">✓ 完了にする</button>' : '') +
-      (mng && a.status === 'done' && a.doneBy && a.doneBy !== a.email ? '<button class="btn sm" data-cundo="' + esc(a.email) + '" title="発信者が完了にした分を未完了に戻す">戻す</button>' : '') + '</div>';
+      (mng && a.status === 'done' ? '<button class="btn sm" data-cundo="' + esc(a.email) + '"' + (a.doneBy && a.doneBy !== a.email ? '' : ' data-self="1"') + ' title="' + esc(a.name) + ' さんの分を未完了に戻す（' + esc(a.name) + ' さんのボードにまた出ます）">戻す</button>' : '') + '</div>'; // 戻すは本人が完了した分にも出す（2026-11-12〜）
   }).join('') + '</div>' : '';
   var html = '<div class="mh"><h3>' + esc(t.title) + '</h3><span class="sp"></span>' + dueTag(t) + '</div><div class="mb detail' + (t.loading ? ' loading' : '') + '">' +
     (t.body ? '<div class="body">' + esc(t.body) + '</div>' : '<p class="hint" style="margin:0">（内容なし）</p>') +
@@ -2342,7 +2342,7 @@ function detailModal(t, focusAsk, into) {
       }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
     }
     bg.querySelectorAll('[data-cfor]').forEach(function (b) { b.onclick = function () { var a = t.assignees.filter(function (x) { return x.email === b.dataset.cfor; })[0]; doFor(b.dataset.cfor, true, (a ? a.name : '') + ' さんの分を完了にしました', b); }; });
-    bg.querySelectorAll('[data-cundo]').forEach(function (b) { b.onclick = function () { var a = t.assignees.filter(function (x) { return x.email === b.dataset.cundo; })[0]; doFor(b.dataset.cundo, false, (a ? a.name : '') + ' さんの分を未完了に戻しました', b); }; });
+    bg.querySelectorAll('[data-cundo]').forEach(function (b) { b.onclick = function () { var a = t.assignees.filter(function (x) { return x.email === b.dataset.cundo; })[0]; if (b.dataset.self && a && a.email !== (S.me && S.me.email) && !confirm(a.name + ' さんが自分で完了にしています。未完了に戻しますか？（' + a.name + ' さんのボードにまた出ます）')) return; doFor(b.dataset.cundo, false, (a ? a.name : '') + ' さんの分を未完了に戻しました', b); }; });
     var da = bg.querySelector('#dDoneAll'); if (da) da.onclick = function () { if (!confirm('まだ完了していない ' + openCount(t) + ' 人を、まとめて完了にしますか？')) return; doFor('all', true, '全員を完了にしました', da); };
     var rs = bg.querySelector('#dReset'); if (rs) rs.onclick = function () { bg.remove(); doReset(t); };
     var x = bg.querySelector('#dDel'); if (x) x.onclick = function () {
