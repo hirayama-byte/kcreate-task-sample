@@ -119,7 +119,14 @@
   .note:hover { transform: translateY(-2px); }
   .note > * { flex: none; min-height: 0; } /* 中身を縦に潰さない */
   .note.yellow { background: #fefce8; } .note.pink { background: #fce7f3; } .note.green { background: #ecfccb; } .note.blue { background: #e0f2fe; } /* 個人=黄（薄め）・重要=ピンク・チーム=黄緑・全社=水色 */
-  #boardCard .card-h { flex-wrap: nowrap; } #boardCard .card-h h2, #boardCard .card-h .pill, #boardCard .card-h .btn, #boardCard .card-h .legend { flex: none; white-space: nowrap; } #boardHint { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } /* 見出しは1行に収める（足りなければ件数の文だけ省略） */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-left: 10px; }
+  .seg button { font: inherit; font-size: 12.5px; border: 0; background: #fff; color: var(--muted); padding: 4px 12px; cursor: pointer; height: 28px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent-weak); color: var(--accent); font-weight: 600; }
+  #boardCard { container-type: inline-size; } /* 一覧の枠の幅で見出しを詰める */
+  @container (max-width: 820px) { #boardCard .card-h .legend { display: none; } } /* 幅が足りないときは色の見本を隠して、件数とボタンを優先 */
+  #boardHint { min-width: 7em; }
+  #boardCard .card-h { flex-wrap: nowrap; } #boardCard .card-h h2, #boardCard .card-h .pill, #boardCard .card-h .btn, #boardCard .card-h .legend, #boardCard .card-h .seg { flex: none; white-space: nowrap; } #boardHint { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } /* 見出しは1行に収める（足りなければ件数の文だけ省略） */
   .legend { display: inline-flex; gap: 10px; font-size: 11px; color: var(--muted); white-space: nowrap; }
   .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: -2px; margin-right: 3px; border: 1px solid rgba(0,0,0,.08); }
   .legend .yellow { background: #fde68a; } .legend .pink { background: #f9a8d4; } .legend .green { background: #bef264; } .legend .blue { background: #7dd3fc; }
@@ -330,7 +337,7 @@
       <!-- ダッシュボード -->
       <section id="dash" class="dash">
         <div class="card" id="boardCard">
-          <div class="card-h"><h2>タスク管理一覧</h2><span class="hint" id="boardHint"></span><span class="sp"></span><span class="legend"><span><i class="yellow"></i>個人</span><span><i class="pink"></i>重要</span><span><i class="green"></i>チーム</span><span><i class="blue"></i>全社</span></span><button class="btn sm" id="doneBtn">完了したタスク</button><button class="btn sm ghost" id="boardReload" title="最新に更新">⟳</button></div>
+          <div class="card-h"><h2>タスク管理一覧</h2><span class="hint" id="boardHint"></span><span class="seg" id="bView" role="group" aria-label="表示するタスク"><button type="button" data-v="today" title="締切が今日のタスクと、締切を過ぎたタスクだけを出します">今日のタスク</button><button type="button" data-v="all" title="残っているタスクを全部出します">全タスク</button></span><span class="sp"></span><span class="legend"><span><i class="yellow"></i>個人</span><span><i class="pink"></i>重要</span><span><i class="green"></i>チーム</span><span><i class="blue"></i>全社</span></span><button class="btn sm" id="doneBtn">完了したタスク</button><button class="btn sm ghost" id="boardReload" title="最新に更新">⟳</button></div>
           <div class="board" id="board"></div>
         </div>
         <div class="card" id="createCard">
@@ -665,7 +672,7 @@ var TASK_HEAD = ['id', 'title', 'body', 'due', 'due_time', 'minutes', 'link', 'c
 // repeat: ''（なし）/ weekly（毎週・締切の曜日）/ biweekly（隔週）/ monthly:D（毎月D日・無い月は月末）/ monthend（毎月末）/ nthwd:N:W（毎月 第N W曜・N=1〜4・W=0日〜6土）/ lastwd:W（毎月 最後のW曜）。repeat_lead: 次の締切の何日前の朝に復活するか（0=当日）
 // kind: self（個人）/ team（チーム＝選んだ相手）/ all（全社＝名前登録済みの全員）。important=1 は重要（色はピンクが優先）
 // scope: self（自分用）/ share（社内メンバーに共有）。status: open / done / deleted。due は yyyy-MM-dd の文字・due_time は HH:mm の文字（空でも可）
-var ASSIGN_HEAD = ['task_id', 'email', 'status', 'done_at', 'assigned_at', 'seen_at', 'remind_at', 'remind_seen']; // 共有タスクの担当者ごとの状態。status: open / done。remind_at=発信者がリマインドを押した日時・remind_seen=本人が「確認した」日時
+var ASSIGN_HEAD = ['task_id', 'email', 'status', 'done_at', 'assigned_at', 'seen_at', 'remind_at', 'remind_seen', 'done_by']; // done_by（9列目・2026-11-12〜）= 本人以外（発信者・管理者）が完了にしたとき、その人のメール。本人が完了したら空 // 共有タスクの担当者ごとの状態。status: open / done。remind_at=発信者がリマインドを押した日時・remind_seen=本人が「確認した」日時
 var COMMENT_HEAD = ['id', 'task_id', 'email', 'body', 'created', 'unread', 'edited', 'deleted']; // deleted = 削除した日時（行は消さない・2026-11-03） // unread = まだ読んでいない人のメール（, 区切り）
 var HISTORY_HEAD = ['task_id', 'due', 'due_time', 'email', 'seen_at', 'done_at', 'closed_at', 'how']; // 前の回の開封・完了（繰り返しの復活／リセットのときに記録・タスクごとに直近 HISTORY_KEEP 回だけ残す）。how: auto（復活）/ reset（リセットボタン）
 var HISTORY_KEEP = 2;
@@ -726,7 +733,7 @@ function setup() {
   var tasks = ensureSheet_(ss, 'tasks', TASK_HEAD);
   if (tasks.getLastColumn() < TASK_HEAD.length) tasks.getRange(1, 1, 1, TASK_HEAD.length).setValues([TASK_HEAD]);
   var asg = ensureSheet_(ss, 'assignments', ASSIGN_HEAD);
-  if (asg.getLastColumn() < ASSIGN_HEAD.length) asg.getRange(1, 1, 1, ASSIGN_HEAD.length).setValues([ASSIGN_HEAD]); // あとから足した列（remind_at, remind_seen）
+  if (asg.getLastColumn() < ASSIGN_HEAD.length) asg.getRange(1, 1, 1, ASSIGN_HEAD.length).setValues([ASSIGN_HEAD]); // あとから足した列（remind_at, remind_seen, done_by）
   ensureSheet_(ss, 'comments', COMMENT_HEAD);
   ensureSheet_(ss, 'history', HISTORY_HEAD);
   var mem = ensureSheet_(ss, 'members', MEMBER_HEAD);
@@ -840,6 +847,7 @@ function init() {
   if (me.name) { try { touchLogin_(email); } catch (err) { Logger.log('最終ログインの記録に失敗: ' + err); } } // 開いた日時を記録（失敗しても画面は開く）
   me.isAdmin = isAdmin_(email);
   me.canOverview = canOverview_(email);
+  me.boardView = boardView_(); // タスク管理一覧の表示（today / all）。本人ごとに覚える（2026-11-12）
   var s = settings_();
   return {
     me: me,
@@ -855,6 +863,14 @@ function init() {
     viewers: me.isAdmin ? viewers_() : [], // 全員の状況を見られる人（管理者の設定画面用）
     teams: teams_() // 保存したチーム（誰でも選べる・2026-11-09）
   };
+}
+// タスク管理一覧の表示を本人ごとに覚える（2026-11-12）: today＝締切が今日・過ぎたものだけ／all＝全部。開いた本人のユーザープロパティに保存
+function boardView_() { try { return PropertiesService.getUserProperties().getProperty('board_view') === 'today' ? 'today' : 'all'; } catch (err) { return 'all'; } }
+function setBoardView(v) {
+  myEmail_();
+  v = v === 'today' ? 'today' : 'all';
+  PropertiesService.getUserProperties().setProperty('board_view', v);
+  return v;
 }
 function links_() {
   return rows_('links').map(function (r) { return { label: String(r[0]), url: String(r[1]), order: Number(r[2] || 0) }; })
@@ -952,7 +968,7 @@ function tasksMap_() {
 }
 function assignsOf_(taskId) {
   return (assignIdx_()[taskId] || [])
-    .map(function (r) { return { email: String(r[1]).toLowerCase(), name: nameOf_(r[1]), status: String(r[2]) || 'open', doneAt: str_(r[3]), assignedAt: str_(r[4]), seenAt: str_(r[5]), remindAt: str_(r[6]), remindSeen: str_(r[7]) }; });
+    .map(function (r) { return { email: String(r[1]).toLowerCase(), name: nameOf_(r[1]), status: String(r[2]) || 'open', doneAt: str_(r[3]), assignedAt: str_(r[4]), seenAt: str_(r[5]), remindAt: str_(r[6]), remindSeen: str_(r[7]), doneBy: String(r[8] || '').toLowerCase(), doneByName: r[8] ? nameOf_(r[8]) : '' }; });
 }
 function unreadCount_(taskId, email) {
   var o = commentIdx_()[taskId]; return o ? (o.unread[email] || 0) : 0;
@@ -1275,7 +1291,7 @@ function personHist_(email, seenAt, doneAt, due, dueTime, closedAt) {
 // 完了を全員分外す（開いた・リマインドの記録も消す。タスクも未完了に）
 function resetRows_(id, row, ts) {
   var ash = sheet_('assignments');
-  rows_('assignments').forEach(function (r, i) { if (String(r[0]) === id) ash.getRange(i + 2, 3, 1, 6).setValues([['open', '', str_(r[4]), '', '', '']]); });
+  rows_('assignments').forEach(function (r, i) { if (String(r[0]) === id) { ash.getRange(i + 2, 3, 1, 6).setValues([['open', '', str_(r[4]), '', '', '']]); if (String(r[8] || '')) ash.getRange(i + 2, 9).setValue(''); } });
   sheet_('tasks').getRange(row, 11, 1, 3).setValues([['open', '', ts]]);
   bust_('assignments'); bust_('tasks');
 }
@@ -1355,7 +1371,7 @@ function createTask(p) {
   bust_('tasks');
   if (to.length) {
     sheet_('assignments').getRange(sheet_('assignments').getLastRow() + 1, 1, to.length, ASSIGN_HEAD.length)
-      .setValues(to.map(function (e) { return [id, e, 'open', '', ts, '', '', '']; }));
+      .setValues(to.map(function (e) { return [id, e, 'open', '', ts, '', '', '', '']; }));
     bust_('assignments');
   }
   return decorate_(tasksMap_()[id], email);
@@ -1421,7 +1437,7 @@ function updateTask(id, p) {
     var cur = {}; assignsOf_(id).forEach(function (a) { cur[a.email] = 1; });
     var known = {}; membersList_().forEach(function (m) { known[m.email] = 1; });
     var add = [], ts = now_();
-    p.addTo.forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (known[e] && !cur[e]) { cur[e] = 1; add.push([id, e, 'open', '', ts, '', '', '']); } });
+    p.addTo.forEach(function (e) { e = String(e || '').trim().toLowerCase(); if (known[e] && !cur[e]) { cur[e] = 1; add.push([id, e, 'open', '', ts, '', '', '', '']); } });
     if (add.length) { sheet_('assignments').getRange(sheet_('assignments').getLastRow() + 1, 1, add.length, ASSIGN_HEAD.length).setValues(add); bust_('assignments'); sh.getRange(x.row, 11).setValue('open'); }
   }
   bust_('tasks');
@@ -1448,6 +1464,7 @@ function setDone_(id, done) {
   for (var i = 0; i < arows.length; i++) if (String(arows[i][0]) === id && String(arows[i][1]).toLowerCase() === email) { mine = i + 2; break; }
   if (mine) {
     ash.getRange(mine, 3, 1, 2).setValues([[done ? 'done' : 'open', done ? ts : '']]);
+    if (String(arows[mine - 2][8] || '')) ash.getRange(mine, 9).setValue(''); // 本人が押したら「発信者が完了」の印は消す
     if (done && !String(arows[mine - 2][5] || '')) ash.getRange(mine, 6).setValue(ts); // 開かずに完了した人も、完了した時刻を開封として残す（履歴で「未開封」にならないように）
     bust_('assignments');
     var all = assignsOf_(id);
@@ -1463,6 +1480,35 @@ function setDone_(id, done) {
   sheet_('tasks').getRange(x.row, 13).setValue(ts);
   bust_('tasks');
   return decorate_(tasksMap_()[id], email);
+}
+
+// 発信者（か管理者）が相手の分を完了にする／未完了に戻す（2026-11-12〜）。target = 相手のメール、または 'all'（未完了の相手全員）
+// 本人が完了したのと同じ扱い（全員完了でタスクも完了）。だれが押したかは done_by に残し、画面に「○○さんが完了」と出す
+function completeFor(id, target, done) {
+  var email = myEmail_();
+  var x = taskRow_(id), t = x.t, ts = now_();
+  if (t.creator !== email && !isAdmin_(email)) throw new Error('相手の分を完了にできるのは、タスクの発信者と管理者だけです');
+  if (t.scope !== 'share') throw new Error('自分用のタスクです（「完了にする」を押してください）');
+  done = done !== false;
+  var ash = sheet_('assignments'), arows = rows_('assignments'), n = 0;
+  if (String(ash.getRange(1, 9).getValue() || '') !== 'done_by') ash.getRange(1, 9).setValue('done_by'); // 前からあるシートにも見出しを足す
+  target = String(target || '').trim().toLowerCase();
+  arows.forEach(function (r, i) {
+    if (String(r[0]) !== id) return;
+    var who = String(r[1]).toLowerCase(), st = String(r[2]);
+    if (target !== 'all' && who !== target) return;
+    if (done && st === 'done') return;
+    if (!done && st !== 'done') return;
+    ash.getRange(i + 2, 3, 1, 2).setValues([[done ? 'done' : 'open', done ? ts : '']]);
+    ash.getRange(i + 2, 9).setValue(done && who !== email ? email : '');
+    n++;
+  });
+  if (!n) throw new Error(target === 'all' ? '未完了の相手がいません' : done ? 'この人はもう完了しているか、このタスクの相手ではありません' : 'この人は完了していません');
+  bust_('assignments');
+  var all = assignsOf_(id), allDone = all.length && all.every(function (a) { return a.status === 'done'; });
+  sheet_('tasks').getRange(x.row, 11, 1, 3).setValues([[allDone ? 'done' : 'open', allDone ? ts : '', ts]]);
+  bust_('tasks');
+  var o = decorate_(tasksMap_()[id], email); o.changed = n; return o;
 }
 
 // 完了したタスク（自分が完了したもの・新しい順）。month='yyyy-MM' で絞れる
@@ -1945,7 +1991,7 @@ $('mCreate').onclick = function () { show('dash'); setTimeout(function () { $('c
 // ---------- 起動 ----------
 function boot() {
   call('init').then(function (r) {
-    S.me = r.me; S.members = r.members; S.teams = r.teams || []; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.appUrl = r.appUrl || ''; S.today = r.today; S.board = r.board; S.sent = r.sent;
+    S.me = r.me; S.members = r.members; S.teams = r.teams || []; S.links = r.links; S.settings = r.settings; S.kinds = r.kinds; S.appUrl = r.appUrl || ''; S.today = r.today; S.board = r.board; S.sent = r.sent; S.view = (r.me && r.me.boardView) === 'today' ? 'today' : 'all';
     if (!S.calDate) S.calDate = r.today;
     $('meMail').textContent = r.me.email;
     if (r.me.name) { $('meName').textContent = r.me.name + (r.me.isAdmin ? '（管理者）' : ''); $('meAv').textContent = initial(r.me.name); }
@@ -2024,12 +2070,22 @@ function noteHtml(t, ro) { // ro = 他の人のボードを見るだけ（完了
     (t.link ? '<a class="lbtn" href="' + esc(t.link) + '" target="_blank" rel="noopener" data-stop title="' + esc(t.link) + '">リンク🔗</a>' : '') +
     (ro ? '<span class="ro-note">' + (t.assignees.some(function (a) { return a.email === S.mvEmail && a.seenAt; }) || t.scope === 'self' ? '未完了' : 'まだ開いていない') + '</span>' : t.myStatus === 'open' ? '<button class="donebtn" data-done>✓ 完了</button>' : '<button class="donebtn sent" data-open>進み具合</button>') + '</div></div>';
 }
+// 今日のタスク／全タスク（2026-11-12・本人ごとに覚える）。今日＝締切が今日・過ぎたもの
+function isTodayTask(t) { var c = dueClass(t); return c === 'late' || c === 'today'; }
+function renderViewBtns() { var v = S.view || 'all'; document.querySelectorAll('#bView button').forEach(function (x) { var on = x.dataset.v === v; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
+document.querySelectorAll('#bView button').forEach(function (x) { x.onclick = function () {
+  if (S.view === x.dataset.v) return;
+  S.view = x.dataset.v; if (S.me) S.me.boardView = S.view; renderBoard();
+  call('setBoardView', S.view).catch(function () {}); // 覚えるのに失敗しても表示はそのまま
+}; });
 function renderBoard() {
-  var b = $('board');
+  var b = $('board'); renderViewBtns();
   if (!S.board.length) { b.innerHTML = '<div class="empty">今のタスクはありません。右の「タスクの作成」から作れます</div>'; $('boardHint').textContent = ''; return; }
-  b.innerHTML = S.board.map(function (t) { return noteHtml(t); }).join('');
+  var list = S.view === 'today' ? S.board.filter(isTodayTask) : S.board;
   var late = S.board.filter(function (t) { return dueClass(t) === 'late'; }).length, today = S.board.filter(function (t) { return dueClass(t) === 'today'; }).length;
   $('boardHint').textContent = S.board.length + ' 件' + (late ? '・超過 ' + late : '') + (today ? '・今日 ' + today : '');
+  if (!list.length) { b.innerHTML = '<div class="empty">今日のタスク（締切が今日・過ぎたもの）はありません。「全タスク」で残りの ' + S.board.length + ' 件が見られます</div>'; return; }
+  b.innerHTML = list.map(function (t) { return noteHtml(t); }).join('');
   b.querySelectorAll('.note').forEach(function (n) {
     var id = n.dataset.id;
     n.onclick = function (e) { if (e.target.closest('[data-stop]')) return; openTask(id); };
@@ -2194,8 +2250,11 @@ function openTask(id, focusAsk) {
 }
 function detailModal(t, focusAsk, into) {
   var c = dueClass(t);
+  var mng = canManage(t); // 発信者・管理者は相手の分を完了にできる（2026-11-12〜）
   var people = t.scope === 'share' ? '<div class="people">' + t.assignees.map(function (a) {
-    return '<div><span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '">' + (a.status === 'done' ? '完了' : a.seenAt ? '確認済・未対応' : '未対応') + '</span><span>' + esc(a.name) + '</span><span class="t">' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' : (a.seenAt ? fmtDt(a.seenAt) + ' に開いた' : 'まだ開いていません') + (a.remindAt ? '・🔔 ' + fmtDt(a.remindAt) + (a.remindSeen ? ' 確認済' : ' 未確認') : '')) + '</span></div>';
+    return '<div><span class="tag ' + (a.status === 'done' ? 'done' : 'open') + '">' + (a.status === 'done' ? '完了' : a.seenAt ? '確認済・未対応' : '未対応') + '</span><span>' + esc(a.name) + '</span><span class="t">' + (a.status === 'done' ? fmtDt(a.doneAt) + ' 完了' + (a.doneBy && a.doneBy !== a.email ? '（' + esc(a.doneByName || a.doneBy) + ' さんが完了）' : '') : (a.seenAt ? fmtDt(a.seenAt) + ' に開いた' : 'まだ開いていません') + (a.remindAt ? '・🔔 ' + fmtDt(a.remindAt) + (a.remindSeen ? ' 確認済' : ' 未確認') : '')) + '</span>' +
+      (mng && a.status !== 'done' ? '<button class="btn sm" data-cfor="' + esc(a.email) + '" title="' + esc(a.name) + ' さんの分を完了にする">✓ 完了にする</button>' : '') +
+      (mng && a.status === 'done' && a.doneBy && a.doneBy !== a.email ? '<button class="btn sm" data-cundo="' + esc(a.email) + '" title="発信者が完了にした分を未完了に戻す">戻す</button>' : '') + '</div>';
   }).join('') + '</div>' : '';
   var html = '<div class="mh"><h3>' + esc(t.title) + '</h3><span class="sp"></span>' + dueTag(t) + '</div><div class="mb detail' + (t.loading ? ' loading' : '') + '">' +
     (t.body ? '<div class="body">' + esc(t.body) + '</div>' : '<p class="hint" style="margin:0">（内容なし）</p>') +
@@ -2209,7 +2268,7 @@ function detailModal(t, focusAsk, into) {
     '<h4 style="margin:14px 0 8px;font-size:13px">質問・返事</h4><div class="thread" id="thread">' + (t.loading ? '<p class="hint" style="margin:0">読み込み中…</p>' : threadHtml(t.comments)) + '</div>' +
     (canWrite(t) ? '' : '<p class="hint" style="margin:0">見るだけです（質問・返事はタスクの発信者と相手だけが書けます）</p>') +
     '<div class="ask' + (canWrite(t) ? '' : ' hide') + '"><textarea id="askText" placeholder="' + (t.isCreator ? '返事や補足を書く（相手に届きます）' : '質問を書く（' + esc(t.creatorName) + ' さんに届きます）') + '"></textarea><button class="btn primary" id="askSend">送る</button></div></div>' +
-    '<div class="mf">' + (t.isCreator || (S.me && S.me.isAdmin) ? '<button class="btn danger" id="dDel">削除</button><button class="btn" id="dEdit">変更</button><button class="btn" id="dCopy" title="この内容で新しいタスクを作る（元のタスクはそのまま）">⧉ 複製</button>' : '') + (canReset(t) ? '<button class="btn" id="dReset" title="完了した人を0人に戻して、全員のボードにもう一度出す">↺ 完了をリセット</button>' : '') + (t.isCreator && t.scope === 'share' && othersOpen(t) ? '<button class="btn" id="dRemind" title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + '<span class="sp"></span><button class="btn" data-close>閉じる</button>' +
+    '<div class="mf">' + (t.isCreator || (S.me && S.me.isAdmin) ? '<button class="btn danger" id="dDel">削除</button><button class="btn" id="dEdit">変更</button><button class="btn" id="dCopy" title="この内容で新しいタスクを作る（元のタスクはそのまま）">⧉ 複製</button>' : '') + (canReset(t) ? '<button class="btn" id="dReset" title="完了した人を0人に戻して、全員のボードにもう一度出す">↺ 完了をリセット</button>' : '') + (mng && t.scope === 'share' && openCount(t) > 1 ? '<button class="btn" id="dDoneAll" title="まだ完了していない相手全員を、まとめて完了にする">✓ 全員を完了にする</button>' : '') + (t.isCreator && t.scope === 'share' && othersOpen(t) ? '<button class="btn" id="dRemind" title="まだ完了していない人にリマインドを送る">🔔 リマインド</button>' : '') + '<span class="sp"></span><button class="btn" data-close>閉じる</button>' +
     (t.myStatus === 'open' ? '<button class="btn primary" id="dDone">✓ 完了にする</button>' : t.myStatus === 'done' ? '<button class="btn" id="dReopen">未完了に戻す</button>' : '') + '</div>';
   return modal(html, function (bg) {
     var th = bg.querySelector('#thread'); th.scrollTop = th.scrollHeight;
@@ -2247,6 +2306,17 @@ function detailModal(t, focusAsk, into) {
     var e = bg.querySelector('#dEdit'); if (e) e.onclick = function () { bg.remove(); editModal(t); };
     var cp = bg.querySelector('#dCopy'); if (cp) cp.onclick = function () { bg.remove(); copyToForm(t); };
     var rm = bg.querySelector('#dRemind'); if (rm) rm.onclick = function () { bg.remove(); doRemind(t.id); };
+    // 発信者が相手の分を完了にする・戻す（2026-11-12〜）
+    function doFor(target, done, label, btn) {
+      if (btn) btn.disabled = true;
+      call('completeFor', t.id, target, done).then(function (nt) {
+        bg.remove(); toast(label); reloadBoard(); if (S.tab === 'done') loadDone();
+        if (nt && nt.id) openTask(nt.id);
+      }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
+    }
+    bg.querySelectorAll('[data-cfor]').forEach(function (b) { b.onclick = function () { var a = t.assignees.filter(function (x) { return x.email === b.dataset.cfor; })[0]; doFor(b.dataset.cfor, true, (a ? a.name : '') + ' さんの分を完了にしました', b); }; });
+    bg.querySelectorAll('[data-cundo]').forEach(function (b) { b.onclick = function () { var a = t.assignees.filter(function (x) { return x.email === b.dataset.cundo; })[0]; doFor(b.dataset.cundo, false, (a ? a.name : '') + ' さんの分を未完了に戻しました', b); }; });
+    var da = bg.querySelector('#dDoneAll'); if (da) da.onclick = function () { if (!confirm('まだ完了していない ' + openCount(t) + ' 人を、まとめて完了にしますか？')) return; doFor('all', true, '全員を完了にしました', da); };
     var rs = bg.querySelector('#dReset'); if (rs) rs.onclick = function () { bg.remove(); doReset(t); };
     var x = bg.querySelector('#dDel'); if (x) x.onclick = function () {
       modal('<div class="mh"><h3>このタスクを削除しますか？</h3></div><div class="mb"><p style="margin:0">「' + esc(t.title) + '」' + (t.scope === 'share' ? 'は相手のボードからも消えます。' : 'を削除します。') + '</p></div><div class="mf"><button class="btn" data-close>やめる</button><button class="btn danger" id="delYes">削除する</button></div>', function (b2) {
@@ -2274,6 +2344,8 @@ function historyHtml(t) {
   }).join('');
   return '<h4 style="margin:14px 0 4px;font-size:13px">履歴（今回と前2回）<span class="hint" style="font-weight:normal">　発信者だけに見えます・遅れ＝前の回で締切に間に合わなかった回数</span></h4><div class="hist"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
 }
+function canManage(t) { return !!(t.isCreator || (S.me && S.me.isAdmin)) && t.scope === 'share'; }
+function openCount(t) { return (t.assignees || []).filter(function (a) { return a.status !== 'done'; }).length; }
 function othersOpen(t) { return t.assignees.some(function (a) { return a.email !== t.creator && a.status !== 'done'; }); } // リマインドを送れる相手（発信者自身は除く）
 function canWrite(t) { return t.isCreator || (S.me && S.me.isAdmin) || t.assignees.some(function (a) { return S.me && a.email === S.me.email; }); }
 function threadHtml(list) {
